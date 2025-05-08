@@ -73,12 +73,6 @@ Build a location-aware web application where users can view a Google Map, draw g
 | Hosting          | Vercel                              |
 | Auth             | Firebase Auth / Xano Auth           |
 
-**Google Maps API Key**  
-```env
-VITE_GOOGLE_MAPS_API_KEY=AIzaSyAdv28EbwKXqvlKo2henxsKMD-4EKB20l8
-```
-
----
 
 ## 7. Application Structure
 
