@@ -3,7 +3,7 @@ import { GoogleMap, useLoadScript, DrawingManager } from '@react-google-maps/api
 import { useMapContext } from '../context/MapContext';
 import type { Geofence, Place } from '../types';
 
-const libraries: ("drawing" | "places")[] = ["drawing", "places"];
+const libraries: ("drawing" | "places" | "geometry")[] = ["drawing", "places", "geometry"];
 
 // Ghana's center coordinates
 const defaultCenter = {
