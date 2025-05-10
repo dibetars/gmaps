@@ -16,10 +16,16 @@ export interface Place {
   address: string;
   location: google.maps.LatLngLiteral;
   is_visited: boolean;
+  date_visited: string | null;
   notes?: string;
   created_at?: string;
   updated_at?: string;
   index?: number; // Add index for array ordering
+  website?: string;
+  phone_number?: string;
+  point_of_contact?: string;
+  position?: 'Manager' | 'Store Clerk' | 'Sales Attendant' | 'Owner';
+  email?: string;
 }
 
 export interface MapContextType {
@@ -30,5 +36,5 @@ export interface MapContextType {
   selectedGeofence: Geofence | null;
   setSelectedGeofence: (geofence: Geofence | null) => void;
   places: Place[];
-  setPlaces: (places: Place[]) => void;
+  setPlaces: (places: Place[] | ((prevPlaces: Place[]) => Place[])) => void;
 } 

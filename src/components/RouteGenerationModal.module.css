@@ -1,0 +1,357 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #1f2937;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px;
+  line-height: 1;
+}
+
+.closeButton:hover {
+  color: #1f2937;
+}
+
+.stepIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+
+.step {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #e5e7eb;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  position: relative;
+  z-index: 1;
+}
+
+.step.active {
+  background-color: #2563eb;
+  color: white;
+}
+
+.stepLine {
+  height: 2px;
+  background-color: #e5e7eb;
+  flex: 1;
+  max-width: 100px;
+  margin: 0 8px;
+}
+
+.stepContent {
+  margin-bottom: 24px;
+}
+
+.stepContent h3 {
+  margin: 0 0 16px;
+  color: #1f2937;
+  font-size: 1.25rem;
+}
+
+.stepContent p {
+  margin: 0 0 24px;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.stepActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.primaryButton {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.primaryButton:hover {
+  background-color: #1d4ed8;
+}
+
+.primaryButton:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  background-color: white;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.secondaryButton:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.formGroup {
+  margin-bottom: 24px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 8px;
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: white;
+  color: #1f2937;
+  font-size: 1rem;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.placesList {
+  margin-top: 24px;
+}
+
+.placesList h4 {
+  margin: 0 0 16px;
+  color: #1f2937;
+  font-size: 1.125rem;
+}
+
+.placesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.placesGrid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.placesGrid::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.placesGrid::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.placesGrid::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.placeCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: white;
+}
+
+.placeCard:hover {
+  border-color: #2563eb;
+  background-color: #f8fafc;
+}
+
+.placeCard.selected {
+  border-color: #2563eb;
+  background-color: #eff6ff;
+}
+
+.placeCard input[type="checkbox"] {
+  margin-top: 2px;
+}
+
+.placeInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.placeName {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.placeAddress {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.routePreview {
+  background-color: #f8fafc;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.routeSummary {
+  margin-bottom: 16px;
+}
+
+.routeSummary h4 {
+  margin: 0 0 12px;
+  color: #1f2937;
+  font-size: 1.125rem;
+}
+
+.routeList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.routeLeg {
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: white;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.routeLeg:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.legHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.legNumber {
+  width: 24px;
+  height: 24px;
+  background-color: #2563eb;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.legAddress {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.legDetails {
+  display: flex;
+  gap: 16px;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.legDistance,
+.legDuration {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+@media (max-width: 640px) {
+  .modalContent {
+    width: 95%;
+    padding: 16px;
+  }
+
+  .stepIndicator {
+    margin-bottom: 24px;
+  }
+
+  .step {
+    width: 28px;
+    height: 28px;
+    font-size: 0.875rem;
+  }
+
+  .stepLine {
+    max-width: 60px;
+  }
+
+  .placesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .stepActions {
+    flex-direction: column;
+  }
+
+  .stepActions button {
+    width: 100%;
+  }
+} 

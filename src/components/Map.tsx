@@ -1,9 +1,11 @@
 import { useEffect, useCallback, useState } from 'react';
-import { GoogleMap, useLoadScript, DrawingManager } from '@react-google-maps/api';
+import { GoogleMap, useLoadScript } from '@react-google-maps/api';
 import { useMapContext } from '../context/MapContext';
 import type { Geofence, Place } from '../types';
+import { GeofencePlaces } from './GeofencePlaces';
+import { GeofenceImportManager } from './GeofenceImportManager';
 
-const libraries: ("drawing" | "places" | "geometry")[] = ["drawing", "places", "geometry"];
+const libraries: ("places" | "drawing")[] = ["places", "drawing"];
 
 // Ghana's center coordinates
 const defaultCenter = {
@@ -24,31 +26,15 @@ const mapContainerStyle = {
   height: '100%'
 };
 
-const drawingOptions = {
-  circleOptions: {
-    fillColor: "#2563eb",
-    fillOpacity: 0.2,
-    strokeWeight: 2,
-    strokeColor: "#2563eb",
-    clickable: true,
-    editable: true,
-    zIndex: 1
-  },
-  polygonOptions: {
-    fillColor: "#2563eb",
-    fillOpacity: 0.2,
-    strokeWeight: 2,
-    strokeColor: "#2563eb",
-    clickable: true,
-    editable: true,
-    zIndex: 1
-  }
-};
-
 export const Map = () => {
-  const { map, setMap, setDrawingManager,  setSelectedGeofence, places } = useMapContext();
+  const { map, setMap, places } = useMapContext();
   const [hoveredPlace, setHoveredPlace] = useState<Place | null>(null);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
+  const [geofences, setGeofences] = useState<Geofence[]>([]);
+  const [temporaryGeofences, setTemporaryGeofences] = useState<Geofence[]>([]);
+  const [geofenceOverlays, setGeofenceOverlays] = useState<google.maps.Polygon[]>([]);
+  const [selectedGeofence, setSelectedGeofence] = useState<Geofence | null>(null);
+  const [showImport, setShowImport] = useState(false);
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string,
@@ -67,38 +53,63 @@ export const Map = () => {
     });
   }, [setMap]);
 
-  const onDrawingManagerLoad = useCallback((drawingManager: google.maps.drawing.DrawingManager) => {
-    setDrawingManager(drawingManager);
-  }, [setDrawingManager]);
-
-  const handleOverlayComplete = useCallback((overlay: google.maps.drawing.OverlayCompleteEvent) => {
-    console.log('Geofence drawn:', overlay.type);
-    
-    const geofence: Geofence = {
-      name: '',
-      type: overlay.type === 'circle' ? 'circle' : 'polygon',
-      coordinates: overlay.type === 'circle' 
-        ? [(overlay.overlay as google.maps.Circle).getCenter()!]
-        : (overlay.overlay as google.maps.Polygon).getPath().getArray(),
-      radius: overlay.type === 'circle' 
-        ? (overlay.overlay as google.maps.Circle).getRadius()
-        : undefined
+  // Fetch existing geofences
+  useEffect(() => {
+    const fetchGeofences = async () => {
+      try {
+        const response = await fetch('https://x8ki-letl-twmt.n7.xano.io/api:jMKnESWk/geofences');
+        const data = await response.json();
+        setGeofences(data);
+      } catch (error) {
+        console.error('Error fetching geofences:', error);
+      }
     };
 
-    console.log('Geofence details:', {
-      type: geofence.type,
-      coordinates: geofence.coordinates.map(coord => {
-        const latLng = coord instanceof google.maps.LatLng ? coord : new google.maps.LatLng(coord.lat, coord.lng);
-        return {
-          lat: latLng.lat(),
-          lng: latLng.lng()
-        };
-      }),
-      radius: geofence.radius
+    fetchGeofences();
+  }, []);
+
+  // Draw geofences on the map
+  useEffect(() => {
+    if (!map) return;
+
+    // Clear existing overlays
+    geofenceOverlays.forEach(overlay => overlay.setMap(null));
+    const newOverlays: google.maps.Polygon[] = [];
+
+    // Combine permanent and temporary geofences
+    const allGeofences = [...geofences, ...temporaryGeofences];
+
+    allGeofences.forEach(geofence => {
+      const paths = geofence.coordinates.map(coord => ({
+        lat: typeof coord.lat === 'function' ? coord.lat() : coord.lat,
+        lng: typeof coord.lng === 'function' ? coord.lng() : coord.lng
+      }));
+
+      const overlay = new google.maps.Polygon({
+        paths,
+        strokeColor: '#2563eb',
+        strokeOpacity: 0.8,
+        strokeWeight: 2,
+        fillColor: '#2563eb',
+        fillOpacity: 0.2,
+        map
+      });
+
+      // Add click listener to show places
+      overlay.addListener('click', () => {
+        setSelectedGeofence(geofence);
+      });
+
+      newOverlays.push(overlay);
     });
 
-    setSelectedGeofence(geofence);
-  }, [setSelectedGeofence]);
+    setGeofenceOverlays(newOverlays);
+
+    // Cleanup
+    return () => {
+      newOverlays.forEach(overlay => overlay.setMap(null));
+    };
+  }, [map, geofences, temporaryGeofences]);
 
   // Add markers for saved places
   useEffect(() => {
@@ -163,31 +174,107 @@ export const Map = () => {
     );
   };
 
+  const handleGeofenceUpdate = (updatedGeofence: Geofence) => {
+    setGeofences(prevGeofences => 
+      prevGeofences.map(g => g.id === updatedGeofence.id ? updatedGeofence : g)
+    );
+    setSelectedGeofence(updatedGeofence);
+  };
+
+  const handleImport = async (importedGeofences: Geofence[], isTemporary: boolean = false) => {
+    if (isTemporary) {
+      // For temporary viewing, just update the temporary geofences state
+      setTemporaryGeofences(importedGeofences);
+    } else {
+      try {
+        // Save each imported geofence to the backend
+        const savedGeofences = await Promise.all(
+          importedGeofences.map(async (geofence) => {
+            const response = await fetch('https://x8ki-letl-twmt.n7.xano.io/api:jMKnESWk/geofences', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(geofence),
+            });
+
+            if (!response.ok) {
+              throw new Error('Failed to save imported geofence');
+            }
+
+            return response.json();
+          })
+        );
+
+        // Update the permanent geofences state with the new geofences
+        setGeofences(prev => [...prev, ...savedGeofences]);
+      } catch (error) {
+        console.error('Error importing geofences:', error);
+      }
+    }
+  };
+
   if (loadError) return <div className="error">Error loading maps</div>;
   if (!isLoaded) return <div className="loading">Loading maps...</div>;
 
   return (
-    <div className="map-container">
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         center={defaultCenter}
-        zoom={7}
+        zoom={8}
         onLoad={onLoad}
-        options={{
-          restriction: {
-            latLngBounds: ghanaBounds,
-            strictBounds: true
-          },
-          minZoom: 6
+      />
+      <button 
+        onClick={() => setShowImport(true)}
+        className="import-button"
+        style={{
+          position: 'absolute',
+          bottom: '20px',
+          left: '20px',
+          padding: '8px 16px',
+          background: '#2563eb',
+          color: 'white',
+          border: 'none',
+          borderRadius: '6px',
+          cursor: 'pointer',
+          zIndex: 1000,
         }}
       >
-        <DrawingManager
-          onLoad={onDrawingManagerLoad}
-          options={drawingOptions}
-          onOverlayComplete={handleOverlayComplete}
+        Import KMZ
+      </button>
+      <button 
+        onClick={() => setTemporaryGeofences([])}
+        className="clear-button"
+        style={{
+          position: 'absolute',
+          bottom: '20px',
+          left: '140px',
+          padding: '8px 16px',
+          background: '#dc2626',
+          color: 'white',
+          border: 'none',
+          borderRadius: '6px',
+          cursor: 'pointer',
+          zIndex: 1000,
+        }}
+      >
+        Clear Points
+      </button>
+      {hoveredPlace && renderHoverPanel()}
+      {selectedGeofence && (
+        <GeofencePlaces
+          geofence={selectedGeofence}
+          onClose={() => setSelectedGeofence(null)}
+          onUpdate={handleGeofenceUpdate}
         />
-      </GoogleMap>
-      {renderHoverPanel()}
+      )}
+      {showImport && (
+        <GeofenceImportManager
+          onImport={handleImport}
+          onClose={() => setShowImport(false)}
+        />
+      )}
     </div>
   );
 }; 

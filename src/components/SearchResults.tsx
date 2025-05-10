@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useMapContext } from '../context/MapContext';
-import { xanoService } from '../services/xanoService';
 import type { Place } from '../types';
 
 interface SearchResultsProps {
@@ -8,7 +7,7 @@ interface SearchResultsProps {
 }
 
 export function SearchResults({ places }: SearchResultsProps) {
-  const { selectedGeofence, setPlaces: setSavedPlaces, places: savedPlaces } = useMapContext();
+  const { places: savedPlaces } = useMapContext();
   const [selectedPlaces, setSelectedPlaces] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -42,8 +41,6 @@ export function SearchResults({ places }: SearchResultsProps) {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentPlaces = places.slice(startIndex, endIndex);
-
-  const unsavedCount = places.filter(place => !isPlaceSaved(place.place_id)).length;
 
   return (
     <div className="search-results">
@@ -85,27 +82,23 @@ export function SearchResults({ places }: SearchResultsProps) {
         )}
       </div>
       <div className="places-list">
-        {currentPlaces.map((place) => {
-          const isSaved = isPlaceSaved(place.place_id);
-          
-          return (
-            <div key={place.id} className="place-item">
-              <div className="place-info">
-                <label className="place-radio">
-                  <input
-                    type="checkbox"
-                    checked={selectedPlaces.has(place.id!)}
-                    onChange={() => handlePlaceSelection(place.id!)}
-                  />
-                  <div className="place-details">
-                <h4>{place.name}</h4>
-                <p>{place.address}</p>
-                  </div>
-                </label>
-              </div>
+        {currentPlaces.map((place) => (
+          <div key={place.id} className="place-item">
+            <div className="place-info">
+              <label className="place-radio">
+                <input
+                  type="checkbox"
+                  checked={selectedPlaces.has(place.id!)}
+                  onChange={() => handlePlaceSelection(place.id!)}
+                />
+                <div className="place-details">
+                  <h4>{place.name}</h4>
+                  <p>{place.address}</p>
+                </div>
+              </label>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     </div>
   );
