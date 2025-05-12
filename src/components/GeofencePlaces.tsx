@@ -32,8 +32,6 @@ export const GeofencePlaces = ({ geofence, onClose, onUpdate }: GeofencePlacesPr
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
-  const [shareUrl, setShareUrl] = useState<string>('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<Place[]>([]);
   const [selectedPlaces, setSelectedPlaces] = useState<Set<string>>(new Set());
@@ -188,6 +186,10 @@ export const GeofencePlaces = ({ geofence, onClose, onUpdate }: GeofencePlacesPr
               try {
                 // Get additional details for each place
                 const details = await new Promise<google.maps.places.PlaceResult>((resolve, reject) => {
+                  if (!place.place_id) {
+                    reject(new Error('Place ID is missing'));
+                    return;
+                  }
                   service.getDetails(
                     { placeId: place.place_id, fields: ['website', 'formatted_phone_number'] },
                     (result, status) => {
@@ -297,25 +299,6 @@ export const GeofencePlaces = ({ geofence, onClose, onUpdate }: GeofencePlacesPr
       }
       return newSelected;
     });
-  };
-
-  const handleShare = async () => {
-    try {
-      const shareableUrl = `${window.location.origin}/geofence/${geofence.id}`;
-      setShareUrl(shareableUrl);
-      setIsSharing(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate share URL');
-    }
-  };
-
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      alert('Share URL copied to clipboard!');
-    } catch (err) {
-      setError('Failed to copy to clipboard');
-    }
   };
 
   const handlePageChange = (newPage: number) => {

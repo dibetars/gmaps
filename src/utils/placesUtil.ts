@@ -16,14 +16,17 @@ export const searchPlacesInGeofence = (
       if (status === google.maps.places.PlacesServiceStatus.OK && results) {
         const places: Place[] = results.map(result => ({
           id: result.place_id!,
+          place_id: result.place_id!,
           name: result.name!,
           address: result.vicinity!,
           location: {
             lat: result.geometry!.location!.lat(),
             lng: result.geometry!.location!.lng()
           },
-          placeId: result.place_id!,
-          isVisited: false
+          is_visited: false,
+          date_visited: null,
+          notes: '',
+          geofence_id: ''
         }));
         resolve(places);
       } else {

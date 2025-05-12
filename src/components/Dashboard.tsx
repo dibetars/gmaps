@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useMapContext } from '../context/MapContext';
 import styles from './Dashboard.module.css';
 import { GeofenceForm } from './GeofenceForm';
 import { GeofenceImportManager } from './GeofenceImportManager';
 import { GoogleMap, useLoadScript } from '@react-google-maps/api';
-import type { Place, Geofence } from '../types';
+import type { Place } from '../types';
 import { xanoService } from '../services/xanoService';
 
 interface DashboardStats {
@@ -34,7 +33,6 @@ const mapContainerStyle = {
 };
 
 const Dashboard: React.FC = () => {
-  const { setSelectedGeofence } = useMapContext();
   const [stats, setStats] = useState<DashboardStats>({
     totalVisits: 0,
     placesToVisit: 0,
@@ -50,10 +48,8 @@ const Dashboard: React.FC = () => {
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
   const [geofenceOverlays, setGeofenceOverlays] = useState<google.maps.Polygon[]>([]);
-  const [places, setPlaces] = useState<Place[]>([]);
-  const [geofences, setGeofences] = useState<Geofence[]>([]);
 
-  const { isLoaded, loadError } = useLoadScript({
+  const { isLoaded } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string,
     libraries
   });
@@ -77,9 +73,6 @@ const Dashboard: React.FC = () => {
 
       const places = await xanoService.getPlacesInGeofence('');
       const geofences = await xanoService.getGeofences();
-      
-      setPlaces(places);
-      setGeofences(geofences);
 
       // Calculate stats
       const totalVisits = places.filter(place => place.is_visited).length;
@@ -194,20 +187,8 @@ const Dashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const places = await xanoService.getPlacesInGeofence('');
-        const geofences = await xanoService.getGeofences();
-        
-        setPlaces(places);
-        setGeofences(geofences);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
-
     fetchData();
-  }, []);
+  }, [map]); // Add map as dependency to update markers when map is loaded
 
   const handleCreateGeofence = () => {
     setShowGeofenceForm(true);

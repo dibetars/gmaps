@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { Geofence } from '../types';
 import styles from './GeofenceEdit.module.css';
 
@@ -10,7 +10,6 @@ interface GeofenceEditProps {
 
 export const GeofenceEdit = ({ geofence, onSave, onCancel }: GeofenceEditProps) => {
   const [name, setName] = useState(geofence.name);
-  const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSave = () => {

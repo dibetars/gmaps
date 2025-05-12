@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useMapContext } from '../context/MapContext';
 import type { Place } from '../types';
 
 interface SearchResultsProps {
@@ -7,14 +6,9 @@ interface SearchResultsProps {
 }
 
 export function SearchResults({ places }: SearchResultsProps) {
-  const { places: savedPlaces } = useMapContext();
   const [selectedPlaces, setSelectedPlaces] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-
-  const isPlaceSaved = (placeId: string) => {
-    return savedPlaces.some(savedPlace => savedPlace.place_id === placeId);
-  };
 
   const handlePlaceSelection = (placeId: string) => {
     setSelectedPlaces(prev => {

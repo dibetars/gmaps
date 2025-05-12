@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useMapContext } from '../context/MapContext';
 import { xanoService } from '../services/xanoService';
 import type { Place, Geofence } from '../types';
-import { PlacesList } from './PlacesList';
 
 declare global {
   interface Window {
@@ -34,7 +33,6 @@ export const GeofenceForm = () => {
   const [error, setError] = useState<string | null>(null);
   const [savedGeofenceId, setSavedGeofenceId] = useState<string | null>(null);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [searchTerms] = useState([
     'restaurant',
@@ -311,7 +309,6 @@ export const GeofenceForm = () => {
   const handleSearchPlaces = useCallback(async () => {
     if (!map || !selectedGeofence) return;
 
-    setIsSearching(true);
     setProgress({ current: 0, total: 0, message: 'Searching for places...' });
     console.log('Searching for places in geofence:', selectedGeofence.type);
 
@@ -351,7 +348,8 @@ export const GeofenceForm = () => {
         location: {
           lat: place.geometry?.location?.lat() || 0,
           lng: place.geometry?.location?.lng() || 0
-        }
+        },
+        date_visited: null
       });
 
       // Function to check if a place is within the geofence
@@ -482,8 +480,6 @@ export const GeofenceForm = () => {
       console.error('Error searching places:', error);
       setProgress({ current: 0, total: 0, message: 'Error occurred while searching places.' });
       setError('Error occurred while searching places.');
-    } finally {
-      setIsSearching(false);
     }
   }, [map, selectedGeofence, geofenceName, searchTerms]);
 

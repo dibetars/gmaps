@@ -230,7 +230,10 @@ export const ReportGenerationModal = ({ places, onClose }: ReportGenerationModal
               </button>
               <button 
                 className={styles.primaryButton}
-                onClick={handleNext}
+                onClick={() => {
+                  downloadReport();
+                  handleNext();
+                }}
               >
                 Download Report
               </button>
