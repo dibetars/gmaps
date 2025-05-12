@@ -36,5 +36,7 @@ export interface MapContextType {
   selectedGeofence: Geofence | null;
   setSelectedGeofence: (geofence: Geofence | null) => void;
   places: Place[];
-  setPlaces: (places: Place[] | ((prevPlaces: Place[]) => Place[])) => void;
+  setPlaces: (places: Place[]) => void;
+  geofences: Geofence[];
+  setGeofences: (geofences: Geofence[]) => void;
 } 

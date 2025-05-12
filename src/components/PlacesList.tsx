@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Place } from '../types';
+import type { Place, Geofence } from '../types';
 import { useMapContext } from '../context/MapContext';
 import { xanoService } from '../services/xanoService';
 import { PlaceModal } from './PlaceModal';
@@ -193,7 +193,7 @@ const WeeklyReportPanel = ({
 );
 
 export const PlacesList = () => {
-  const { places, setPlaces } = useMapContext();
+  const { places, setPlaces, geofences, setGeofences } = useMapContext();
   const [placesByGeofence, setPlacesByGeofence] = useState<Record<string, Place[]>>({});
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -295,8 +295,20 @@ export const PlacesList = () => {
   }, []);
 
   useEffect(() => {
-    organizePlacesByGeofence();
-  }, [organizePlacesByGeofence]);
+    const fetchData = async () => {
+      try {
+        const places = await xanoService.getPlacesInGeofence('');
+        const geofences = await xanoService.getGeofences();
+        
+        setPlaces(places);
+        setGeofences(geofences);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const handlePlaceUpdate = (updatedPlace: Place) => {
     setPlaces((prevPlaces: Place[]) => 

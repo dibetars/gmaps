@@ -118,54 +118,29 @@ export const GeofencePlaces = ({ geofence, onClose, onUpdate }: GeofencePlacesPr
 
   useEffect(() => {
     const fetchPlaces = async () => {
+      if (!geofence.id) return;
+      
       try {
-        setLoading(true);
-        const response = await fetch(`https://x8ki-letl-twmt.n7.xano.io/api:jMKnESWk/places?geofence_id=${geofence.id}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch places');
-        }
-        const data = await response.json();
-        setPlaces(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch places');
-      } finally {
-        setLoading(false);
+        const places = await xanoService.getPlacesInGeofence(geofence.id);
+        setPlaces(places);
+      } catch (error) {
+        console.error('Error fetching places:', error);
       }
     };
 
-    if (geofence.id) {
-      fetchPlaces();
-    }
+    fetchPlaces();
   }, [geofence.id]);
 
   const handleEdit = () => {
     setIsEditing(true);
   };
 
-  const handleSave = async (updatedGeofence: Geofence) => {
+  const handleUpdateGeofence = async (updatedGeofence: Geofence) => {
     try {
-      const response = await fetch(`https://x8ki-letl-twmt.n7.xano.io/api:jMKnESWk/geofences/${geofence.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: updatedGeofence.name,
-          type: updatedGeofence.type,
-          coordinates: updatedGeofence.coordinates,
-          radius: updatedGeofence.radius
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update geofence');
-      }
-
-      const updatedData = await response.json();
-      onUpdate(updatedData);
-      setIsEditing(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update geofence');
+      const savedGeofence = await xanoService.saveGeofence(updatedGeofence);
+      onUpdate(savedGeofence);
+    } catch (error) {
+      console.error('Error updating geofence:', error);
     }
   };
 
@@ -369,7 +344,7 @@ export const GeofencePlaces = ({ geofence, onClose, onUpdate }: GeofencePlacesPr
     return (
       <GeofenceEdit
         geofence={geofence}
-        onSave={handleSave}
+        onSave={handleUpdateGeofence}
         onCancel={() => setIsEditing(false)}
       />
     );

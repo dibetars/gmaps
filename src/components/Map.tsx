@@ -4,6 +4,7 @@ import { useMapContext } from '../context/MapContext';
 import type { Geofence, Place } from '../types';
 import { GeofencePlaces } from './GeofencePlaces';
 import { GeofenceImportManager } from './GeofenceImportManager';
+import { xanoService } from '../services/xanoService';
 
 const libraries: ("places" | "drawing")[] = ["places", "drawing"];
 
@@ -57,8 +58,7 @@ export const Map = () => {
   useEffect(() => {
     const fetchGeofences = async () => {
       try {
-        const response = await fetch('https://x8ki-letl-twmt.n7.xano.io/api:jMKnESWk/geofences');
-        const data = await response.json();
+        const data = await xanoService.getGeofences();
         setGeofences(data);
       } catch (error) {
         console.error('Error fetching geofences:', error);
@@ -187,23 +187,9 @@ export const Map = () => {
       setTemporaryGeofences(importedGeofences);
     } else {
       try {
-        // Save each imported geofence to the backend
+        // Save each imported geofence using xanoService
         const savedGeofences = await Promise.all(
-          importedGeofences.map(async (geofence) => {
-            const response = await fetch('https://x8ki-letl-twmt.n7.xano.io/api:jMKnESWk/geofences', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(geofence),
-            });
-
-            if (!response.ok) {
-              throw new Error('Failed to save imported geofence');
-            }
-
-            return response.json();
-          })
+          importedGeofences.map(geofence => xanoService.saveGeofence(geofence))
         );
 
         // Update the permanent geofences state with the new geofences

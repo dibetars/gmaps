@@ -1,6 +1,6 @@
 import type { Geofence, Place } from '../types';
 
-const XANO_BASE_URL = 'https://x8ki-letl-twmt.n7.xano.io/api:jMKnESWk';
+const XANO_BASE_URL = 'https://api-server.krontiva.africa/api:GEtwoG7z';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
 
@@ -14,6 +14,27 @@ class XanoError extends Error {
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const xanoService = {
+  async getGeofences(): Promise<Geofence[]> {
+    try {
+      const response = await fetch(`${XANO_BASE_URL}/geofences`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new XanoError('Failed to fetch geofences', response.status);
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error instanceof XanoError) {
+        throw error;
+      }
+      throw new XanoError('Network error while fetching geofences');
+    }
+  },
+
   async saveGeofence(geofence: Geofence): Promise<Geofence> {
     try {
       // Convert coordinates to the format Xano expects
