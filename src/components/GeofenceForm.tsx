@@ -555,19 +555,19 @@ export const GeofenceForm = () => {
                 <p className="no-places">No places found in this area. Try adjusting your geofence or search terms.</p>
               ) : (
                 foundPlaces.map(place => (
-                  <div key={place.place_id} className="place-item">
-                    <label className="place-radio">
-                      <input
-                        type="checkbox"
-                        checked={selectedPlaces.has(place.place_id)}
-                        onChange={() => handlePlaceSelection(place.place_id)}
-                      />
-                      <div className="place-details">
-                        <h4>{place.name}</h4>
-                        <p>{place.address}</p>
-                      </div>
-                    </label>
-                  </div>
+                <div key={place.place_id} className="place-item">
+                  <label className="place-radio">
+                    <input
+                      type="checkbox"
+                      checked={selectedPlaces.has(place.place_id)}
+                      onChange={() => handlePlaceSelection(place.place_id)}
+                    />
+                    <div className="place-details">
+                      <h4>{place.name}</h4>
+                      <p>{place.address}</p>
+                    </div>
+                  </label>
+                </div>
                 ))
               )}
             </div>

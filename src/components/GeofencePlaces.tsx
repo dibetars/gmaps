@@ -135,7 +135,7 @@ export const GeofencePlaces = ({ geofence, onClose, onUpdate }: GeofencePlacesPr
       }
     };
 
-    fetchPlaces();
+      fetchPlaces();
   }, [geofence.id]);
 
   const handleEdit = () => {
