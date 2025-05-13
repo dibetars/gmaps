@@ -9,7 +9,6 @@ export const MapProvider = ({ children }: { children: ReactNode }) => {
   const [drawingManager, setDrawingManager] = useState<google.maps.drawing.DrawingManager | null>(null);
   const [selectedGeofence, setSelectedGeofence] = useState<Geofence | null>(null);
   const [places, setPlaces] = useState<Place[]>([]);
-  const [geofences, setGeofences] = useState<Geofence[]>([]);
 
   return (
     <MapContext.Provider
@@ -22,8 +21,6 @@ export const MapProvider = ({ children }: { children: ReactNode }) => {
         setSelectedGeofence,
         places,
         setPlaces,
-        geofences,
-        setGeofences,
       }}
     >
       {children}

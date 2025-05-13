@@ -24,7 +24,7 @@ declare global {
 }
 
 export const GeofenceForm = () => {
-  const { drawingManager, setDrawingManager, selectedGeofence, setSelectedGeofence, places: foundPlaces, map } = useMapContext();
+  const { drawingManager, setDrawingManager, selectedGeofence, setSelectedGeofence, places: foundPlaces, map, setPlaces } = useMapContext();
   const [currentStep, setCurrentStep] = useState(1);
   const [geofenceName, setGeofenceName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -162,8 +162,10 @@ export const GeofenceForm = () => {
   // Watch for geofence changes to trigger step transition
   useEffect(() => {
     if (selectedGeofence && currentStep === 1) {
+      console.log('Selected geofence detected, starting save process:', selectedGeofence);
       handleSaveGeofence();
       setCurrentStep(2); // Move to step 2 after saving geofence
+      console.log('Starting places search...');
       handleSearchPlaces(); // Start searching for places
     }
   }, [selectedGeofence]);
@@ -174,6 +176,11 @@ export const GeofenceForm = () => {
       setCurrentStep(3);
     }
   }, [foundPlaces, currentStep]);
+
+  // Add effect to log places changes
+  useEffect(() => {
+    console.log('Places updated:', foundPlaces.length);
+  }, [foundPlaces]);
 
   const handleSaveGeofence = async () => {
     if (!selectedGeofence || !geofenceName.trim()) {
@@ -307,13 +314,18 @@ export const GeofenceForm = () => {
   };
 
   const handleSearchPlaces = useCallback(async () => {
-    if (!map || !selectedGeofence) return;
+    console.log('handleSearchPlaces called with map:', !!map, 'selectedGeofence:', !!selectedGeofence);
+    if (!map || !selectedGeofence) {
+      console.log('Early return - missing map or selectedGeofence');
+      return;
+    }
 
     setProgress({ current: 0, total: 0, message: 'Searching for places...' });
     console.log('Searching for places in geofence:', selectedGeofence.type);
 
     try {
       const service = new google.maps.places.PlacesService(map);
+      console.log('Places service created');
       const center = selectedGeofence.type === 'circle' 
         ? selectedGeofence.coordinates[0]
         : new google.maps.LatLng(
@@ -470,6 +482,8 @@ export const GeofenceForm = () => {
       // Remove duplicates (in case any slipped through)
       const uniquePlaces = Array.from(new Map(allPlaces.map(place => [place.place_id, place])).values());
 
+      console.log('Found unique places:', uniquePlaces.length);
+      setPlaces(uniquePlaces); // Update places in the context
       setProgress({ 
         current: uniquePlaces.length, 
         total: uniquePlaces.length, 
@@ -481,7 +495,7 @@ export const GeofenceForm = () => {
       setProgress({ current: 0, total: 0, message: 'Error occurred while searching places.' });
       setError('Error occurred while searching places.');
     }
-  }, [map, selectedGeofence, geofenceName, searchTerms]);
+  }, [map, selectedGeofence, geofenceName, searchTerms, setPlaces]);
 
   const renderStepContent = () => {
     switch (currentStep) {
@@ -537,21 +551,25 @@ export const GeofenceForm = () => {
         return (
           <div className="step-content">
             <div className="places-list">
-              {foundPlaces.map(place => (
-                <div key={place.place_id} className="place-item">
-                  <label className="place-radio">
-                    <input
-                      type="checkbox"
-                      checked={selectedPlaces.has(place.place_id)}
-                      onChange={() => handlePlaceSelection(place.place_id)}
-                    />
-                    <div className="place-details">
-                      <h4>{place.name}</h4>
-                      <p>{place.address}</p>
-                    </div>
-                  </label>
-                </div>
-              ))}
+              {foundPlaces.length === 0 ? (
+                <p className="no-places">No places found in this area. Try adjusting your geofence or search terms.</p>
+              ) : (
+                foundPlaces.map(place => (
+                  <div key={place.place_id} className="place-item">
+                    <label className="place-radio">
+                      <input
+                        type="checkbox"
+                        checked={selectedPlaces.has(place.place_id)}
+                        onChange={() => handlePlaceSelection(place.place_id)}
+                      />
+                      <div className="place-details">
+                        <h4>{place.name}</h4>
+                        <p>{place.address}</p>
+                      </div>
+                    </label>
+                  </div>
+                ))
+              )}
             </div>
             {isSaving && (
               <div className="progress-container">

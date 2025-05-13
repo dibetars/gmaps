@@ -67,18 +67,21 @@ const GeofenceSection = ({
   geofenceName, 
   currentPage, 
   itemsPerPage, 
-  onPlaceClick 
+  onPlaceClick,
+  onPageChange 
 }: { 
   places: Place[];
   geofenceName: string;
   currentPage: number;
   itemsPerPage: number;
   onPlaceClick: (place: Place) => void;
+  onPageChange: (page: number) => void;
 }) => {
   const [showRouteModal, setShowRouteModal] = useState(false);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentPlaces = places.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(places.length / itemsPerPage);
 
   return (
     <div className={styles.geofenceColumn}>
@@ -107,6 +110,28 @@ const GeofenceSection = ({
         ))}
       </div>
 
+      {totalPages > 1 && (
+        <div className={styles.pagination}>
+          <button
+            className={styles.paginationButton}
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+          <span className={styles.pageInfo}>
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            className={styles.paginationButton}
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </div>
+      )}
+
       {showRouteModal && (
         <RouteGenerationModal
           places={places}
@@ -129,6 +154,111 @@ export const PlacesList = () => {
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Fetch all places when component mounts
+  useEffect(() => {
+    const fetchPlaces = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Fetch all places from the API
+        const response = await fetch('https://x8ki-letl-twmt.n7.xano.io/api:jMKnESWk/places');
+        if (!response.ok) {
+          throw new Error('Failed to fetch places');
+        }
+        
+        const fetchedPlaces = await response.json();
+        setPlaces(fetchedPlaces);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch places');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPlaces();
+  }, [setPlaces]);
+
+  const getFilteredAndSortedPlaces = (places: Place[]) => {
+    // First filter by search query
+    let filtered = places.filter(place => 
+      place.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      place.address.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    // Then filter by visit status
+    if (filterBy === 'visited') {
+      filtered = filtered.filter(place => place.is_visited);
+    } else if (filterBy === 'not-visited') {
+      filtered = filtered.filter(place => !place.is_visited);
+    }
+
+    // Finally sort the results
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'date':
+          if (!a.date_visited && !b.date_visited) return 0;
+          if (!a.date_visited) return 1;
+          if (!b.date_visited) return -1;
+          return new Date(b.date_visited).getTime() - new Date(a.date_visited).getTime();
+        case 'status':
+          if (a.is_visited === b.is_visited) return 0;
+          return a.is_visited ? -1 : 1;
+        default:
+          return 0;
+      }
+    });
+  };
+
+  // Organize places by geofence whenever places change
+  useEffect(() => {
+    const organized = places.reduce((acc, place) => {
+      const geofenceId = place.geofence_id || 'unassigned';
+      if (!acc[geofenceId]) {
+        acc[geofenceId] = [];
+      }
+      acc[geofenceId].push(place);
+      return acc;
+    }, {} as Record<string, Place[]>);
+
+    // Apply filtering and sorting to each geofence's places
+    const filteredAndSorted = Object.entries(organized).reduce((acc, [geofenceId, places]) => {
+      acc[geofenceId] = getFilteredAndSortedPlaces(places);
+      return acc;
+    }, {} as Record<string, Place[]>);
+
+    setPlacesByGeofence(filteredAndSorted);
+  }, [places, searchQuery, filterBy, sortBy]);
+
+  // Initialize pagination for each geofence
+  useEffect(() => {
+    const newPagination = Object.keys(placesByGeofence).reduce((acc, geofenceId) => {
+      if (!pagination[geofenceId]) {
+        acc[geofenceId] = {
+          currentPage: 1,
+          itemsPerPage: 5
+        };
+      } else {
+        acc[geofenceId] = pagination[geofenceId];
+      }
+      return acc;
+    }, {} as GeofencePagination);
+    
+    setPagination(newPagination);
+  }, [placesByGeofence]);
+
+  const handlePageChange = (geofenceId: string, page: number) => {
+    setPagination(prev => ({
+      ...prev,
+      [geofenceId]: {
+        ...prev[geofenceId],
+        currentPage: page
+      }
+    }));
+  };
 
   const toggleVisited = async (placeId: string) => {
     const updatedPlaces = places.map(place => 
@@ -171,44 +301,6 @@ export const PlacesList = () => {
       }
     }
   };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const places = await xanoService.getPlacesInGeofence('');
-        setPlaces(places);
-        
-        // Group places by geofence_id
-        const groupedPlaces = places.reduce((acc, place) => {
-          const geofenceId = place.geofence_id;
-          if (!acc[geofenceId]) {
-            acc[geofenceId] = [];
-          }
-          acc[geofenceId].push(place);
-          return acc;
-        }, {} as Record<string, Place[]>);
-
-        setPlacesByGeofence(groupedPlaces);
-
-        // Initialize pagination for each geofence
-        const initialPagination = Object.keys(groupedPlaces).reduce((acc, geofenceId) => {
-          acc[geofenceId] = {
-            currentPage: 1,
-            itemsPerPage: 5
-          };
-          return acc;
-        }, {} as GeofencePagination);
-        setPagination(initialPagination);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setError('Failed to fetch data');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
 
   if (isLoading) {
     return (
@@ -263,6 +355,8 @@ export const PlacesList = () => {
           <button 
             className={styles.reportButton}
             onClick={() => setShowReportModal(true)}
+            disabled={true}
+            title="Report generation is temporarily disabled"
           >
             📊 Generate Report
           </button>
@@ -276,8 +370,9 @@ export const PlacesList = () => {
             places={places}
             geofenceName={geofenceNames[geofenceId] || 'Unnamed Geofence'}
             currentPage={pagination[geofenceId]?.currentPage || 1}
-            itemsPerPage={pagination[geofenceId]?.itemsPerPage || 10}
+            itemsPerPage={pagination[geofenceId]?.itemsPerPage || 5}
             onPlaceClick={setSelectedPlace}
+            onPageChange={(page) => handlePageChange(geofenceId, page)}
           />
         ))}
       </div>

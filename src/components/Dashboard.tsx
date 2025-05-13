@@ -3,14 +3,30 @@ import styles from './Dashboard.module.css';
 import { GeofenceForm } from './GeofenceForm';
 import { GeofenceImportManager } from './GeofenceImportManager';
 import { GoogleMap, useLoadScript } from '@react-google-maps/api';
-import type { Place } from '../types';
-import { xanoService } from '../services/xanoService';
 
 interface DashboardStats {
   totalVisits: number;
   placesToVisit: number;
   totalGeofences: number;
   totalPlaces: number;
+}
+
+interface Place {
+  id: string;
+  name: string;
+  is_visited: boolean;
+  date_visited?: string;
+  location: {
+    lat: number;
+    lng: number;
+  };
+}
+
+interface Geofence {
+  id: string;
+  name: string;
+  is_active: boolean;
+  coordinates: google.maps.LatLng[] | google.maps.LatLngLiteral[];
 }
 
 interface RecentActivity {
@@ -71,8 +87,13 @@ const Dashboard: React.FC = () => {
       }
       setError(null);
 
-      const places = await xanoService.getPlacesInGeofence('');
-      const geofences = await xanoService.getGeofences();
+      // Fetch places
+      const placesResponse = await fetch('https://x8ki-letl-twmt.n7.xano.io/api:jMKnESWk/places');
+      const places: Place[] = await placesResponse.json();
+
+      // Fetch geofences
+      const geofencesResponse = await fetch('https://x8ki-letl-twmt.n7.xano.io/api:jMKnESWk/geofences');
+      const geofences: Geofence[] = await geofencesResponse.json();
 
       // Calculate stats
       const totalVisits = places.filter(place => place.is_visited).length;
@@ -187,7 +208,14 @@ const Dashboard: React.FC = () => {
   };
 
   useEffect(() => {
+    // Initial fetch
     fetchData();
+
+    // Set up interval for background updates
+    const intervalId = setInterval(() => fetchData(true), 30000); // 30 seconds
+
+    // Cleanup function to clear interval when component unmounts
+    return () => clearInterval(intervalId);
   }, [map]); // Add map as dependency to update markers when map is loaded
 
   const handleCreateGeofence = () => {

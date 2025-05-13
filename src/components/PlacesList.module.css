@@ -91,10 +91,17 @@
   transform: translateY(-1px);
 }
 
+.reportButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #ccc;
+}
+
 .placesGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   gap: 2rem;
+  padding: 1rem;
 }
 
 .geofenceColumn {
@@ -104,13 +111,13 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: 400px;
 }
 
 .geofenceHeader {
-  padding: 16px;
+  padding: 1.5rem;
   background-color: #f8fafc;
-  border-radius: 8px;
-  margin-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -119,7 +126,7 @@
 .geofenceTitle {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1rem;
 }
 
 .geofenceTitle h3 {
@@ -133,24 +140,25 @@
   font-size: 0.875rem;
   color: #6b7280;
   background: #f3f4f6;
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.75rem;
   border-radius: 9999px;
 }
 
 .geofencePlaces {
-  padding: 1.25rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.25rem;
   flex: 1;
   overflow-y: auto;
+  max-height: 600px;
 }
 
 .placeCard {
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
-  padding: 1.25rem;
+  padding: 1.5rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -244,7 +252,7 @@
   border-top: 1px solid #e5e7eb;
 }
 
-.geofencePagination {
+.pagination {
   display: flex;
   justify-content: center;
   align-items: center;
