@@ -3,8 +3,7 @@ import styles from './Dashboard.module.css';
 import { GeofenceForm } from './GeofenceForm';
 import { GeofenceImportManager } from './GeofenceImportManager';
 import { GoogleMap, useLoadScript } from '@react-google-maps/api';
-import { useMapContext } from '../context/MapContext';
-import type { Place, Geofence } from '../types';
+import type { Place } from '../types';
 import { xanoService } from '../services/xanoService';
 
 interface DashboardStats {
