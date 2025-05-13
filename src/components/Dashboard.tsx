@@ -3,30 +3,15 @@ import styles from './Dashboard.module.css';
 import { GeofenceForm } from './GeofenceForm';
 import { GeofenceImportManager } from './GeofenceImportManager';
 import { GoogleMap, useLoadScript } from '@react-google-maps/api';
+import { useMapContext } from '../context/MapContext';
+import type { Place, Geofence } from '../types';
+import { xanoService } from '../services/xanoService';
 
 interface DashboardStats {
   totalVisits: number;
   placesToVisit: number;
   totalGeofences: number;
   totalPlaces: number;
-}
-
-interface Place {
-  id: string;
-  name: string;
-  is_visited: boolean;
-  date_visited?: string;
-  location: {
-    lat: number;
-    lng: number;
-  };
-}
-
-interface Geofence {
-  id: string;
-  name: string;
-  is_active: boolean;
-  coordinates: google.maps.LatLng[] | google.maps.LatLngLiteral[];
 }
 
 interface RecentActivity {
@@ -87,13 +72,11 @@ const Dashboard: React.FC = () => {
       }
       setError(null);
 
-      // Fetch places
-      const placesResponse = await fetch('https://x8ki-letl-twmt.n7.xano.io/api:jMKnESWk/places');
-      const places: Place[] = await placesResponse.json();
-
-      // Fetch geofences
-      const geofencesResponse = await fetch('https://x8ki-letl-twmt.n7.xano.io/api:jMKnESWk/geofences');
-      const geofences: Geofence[] = await geofencesResponse.json();
+      // Fetch places and geofences using xanoService
+      const [places, geofences] = await Promise.all([
+        xanoService.getPlacesInGeofence(''),
+        xanoService.getGeofences()
+      ]);
 
       // Calculate stats
       const totalVisits = places.filter(place => place.is_visited).length;

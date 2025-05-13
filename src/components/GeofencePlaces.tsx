@@ -144,24 +144,7 @@ export const GeofencePlaces = ({ geofence, onClose, onUpdate }: GeofencePlacesPr
 
   const handleSave = async (updatedGeofence: Geofence) => {
     try {
-      const response = await fetch(`https://x8ki-letl-twmt.n7.xano.io/api:jMKnESWk/geofences/${geofence.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: updatedGeofence.name,
-          type: updatedGeofence.type,
-          coordinates: updatedGeofence.coordinates,
-          radius: updatedGeofence.radius
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update geofence');
-      }
-
-      const updatedData = await response.json();
+      const updatedData = await xanoService.saveGeofence(updatedGeofence);
       onUpdate(updatedData);
       setIsEditing(false);
     } catch (err) {

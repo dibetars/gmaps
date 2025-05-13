@@ -162,13 +162,8 @@ export const PlacesList = () => {
         setIsLoading(true);
         setError(null);
         
-        // Fetch all places from the API
-        const response = await fetch('https://x8ki-letl-twmt.n7.xano.io/api:jMKnESWk/places');
-        if (!response.ok) {
-          throw new Error('Failed to fetch places');
-        }
-        
-        const fetchedPlaces = await response.json();
+        // Use xanoService to fetch places
+        const fetchedPlaces = await xanoService.getPlacesInGeofence('');
         setPlaces(fetchedPlaces);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch places');

@@ -4,6 +4,7 @@ import { useMapContext } from '../context/MapContext';
 import type { Geofence, Place } from '../types';
 import { GeofencePlaces } from './GeofencePlaces';
 import { GeofenceImportManager } from './GeofenceImportManager';
+import { xanoService } from '../services/xanoService';
 
 const libraries: ("places" | "drawing")[] = ["places", "drawing"];
 
@@ -57,8 +58,7 @@ export const Map = () => {
   useEffect(() => {
     const fetchGeofences = async () => {
       try {
-        const response = await fetch('https://x8ki-letl-twmt.n7.xano.io/api:jMKnESWk/geofences');
-        const data = await response.json();
+        const data = await xanoService.getGeofences();
         setGeofences(data);
       } catch (error) {
         console.error('Error fetching geofences:', error);
