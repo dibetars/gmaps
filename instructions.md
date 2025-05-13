@@ -185,6 +185,14 @@ VITE_GOOGLE_MAPS_API_KEY=AIzaSyAdv28EbwKXqvlKo2henxsKMD-4EKB20l8
 - Implemented report data organization by day
 - Added empty state handling for days without visits
 
+### May 9, 2024
+- Updated API endpoint to new server
+- Removed debug logging statements
+- Improved code cleanup and organization
+- Enhanced error handling in API calls
+- Centralized API interactions through service layer
+- Improved geofence name handling for unassigned places
+
 ### Current Features
 - ✅ Dashboard with visit statistics
 - ✅ Map centered on Ghana with restricted bounds
@@ -274,6 +282,10 @@ VITE_GOOGLE_MAPS_API_KEY=AIzaSyAdv28EbwKXqvlKo2henxsKMD-4EKB20l8
 - ✅ Responsive route generation interface
 - ✅ Enhanced search bar with improved sizing
 - ✅ Optimized report button layout
+- ✅ Centralized API service layer
+- ✅ Clean production-ready codebase
+- ✅ Improved error handling
+- ✅ Enhanced geofence name management
 
 ### Next Steps
 - [ ] Add user authentication

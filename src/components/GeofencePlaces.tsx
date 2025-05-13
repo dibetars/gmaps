@@ -220,7 +220,7 @@ export const GeofencePlaces = ({ geofence, onClose, onUpdate }: GeofencePlacesPr
                   is_visited: false,
                   date_visited: null,
                   notes: '',
-                  geofence_id: geofence.id || '',
+                  geofences_id: geofence.id || '',
                   location: {
                     lat: place.geometry?.location?.lat() || 0,
                     lng: place.geometry?.location?.lng() || 0
@@ -239,7 +239,7 @@ export const GeofencePlaces = ({ geofence, onClose, onUpdate }: GeofencePlacesPr
                   is_visited: false,
                   date_visited: null,
                   notes: '',
-                  geofence_id: geofence.id || '',
+                  geofences_id: geofence.id || '',
                   location: {
                     lat: place.geometry?.location?.lat() || 0,
                     lng: place.geometry?.location?.lng() || 0

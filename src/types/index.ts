@@ -10,7 +10,7 @@ export interface Geofence {
 
 export interface Place {
   id?: string;
-  geofence_id: string;
+  geofences_id: string;
   place_id: string;
   name: string;
   address: string;

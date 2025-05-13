@@ -149,11 +149,31 @@ export const PlacesList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [pagination, setPagination] = useState<GeofencePagination>({});
-  const [geofenceNames] = useState<Record<string, string>>({});
+  const [geofenceNames, setGeofenceNames] = useState<Record<string, string>>({});
   const [showReportModal, setShowReportModal] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Fetch geofences to get names
+  useEffect(() => {
+    const fetchGeofences = async () => {
+      try {
+        const geofences = await xanoService.getGeofences();
+        const namesMap = geofences.reduce((acc, geofence) => {
+          if (geofence.id) {
+            acc[geofence.id] = geofence.name;
+          }
+          return acc;
+        }, {} as Record<string, string>);
+        setGeofenceNames(namesMap);
+      } catch (err) {
+        console.error('Error fetching geofences:', err);
+      }
+    };
+
+    fetchGeofences();
+  }, []);
 
   // Fetch all places when component mounts
   useEffect(() => {
@@ -166,6 +186,7 @@ export const PlacesList = () => {
         const fetchedPlaces = await xanoService.getPlacesInGeofence('');
         setPlaces(fetchedPlaces);
       } catch (err) {
+        console.error('Error fetching places:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch places');
       } finally {
         setIsLoading(false);
@@ -210,8 +231,10 @@ export const PlacesList = () => {
 
   // Organize places by geofence whenever places change
   useEffect(() => {
+    if (!places) return;
+    
     const organized = places.reduce((acc, place) => {
-      const geofenceId = place.geofence_id || 'unassigned';
+      const geofenceId = place.geofences_id || 'unassigned';
       if (!acc[geofenceId]) {
         acc[geofenceId] = [];
       }
@@ -226,7 +249,7 @@ export const PlacesList = () => {
     }, {} as Record<string, Place[]>);
 
     setPlacesByGeofence(filteredAndSorted);
-  }, [places, searchQuery, filterBy, sortBy]);
+  }, [places, searchQuery, filterBy, sortBy, geofenceNames]);
 
   // Initialize pagination for each geofence
   useEffect(() => {
@@ -359,17 +382,20 @@ export const PlacesList = () => {
       </div>
 
       <div className={styles.placesGrid}>
-        {Object.entries(placesByGeofence).map(([geofenceId, places]) => (
-          <GeofenceSection
-            key={geofenceId}
-            places={places}
-            geofenceName={geofenceNames[geofenceId] || 'Unnamed Geofence'}
-            currentPage={pagination[geofenceId]?.currentPage || 1}
-            itemsPerPage={pagination[geofenceId]?.itemsPerPage || 5}
-            onPlaceClick={setSelectedPlace}
-            onPageChange={(page) => handlePageChange(geofenceId, page)}
-          />
-        ))}
+        {Object.entries(placesByGeofence).map(([geofenceId, places]) => {
+          const geofenceName = geofenceNames[geofenceId] || 'Unnamed Geofence';
+          return (
+            <GeofenceSection
+              key={geofenceId}
+              places={places}
+              geofenceName={geofenceName}
+              currentPage={pagination[geofenceId]?.currentPage || 1}
+              itemsPerPage={pagination[geofenceId]?.itemsPerPage || 5}
+              onPlaceClick={setSelectedPlace}
+              onPageChange={(page) => handlePageChange(geofenceId, page)}
+            />
+          );
+        })}
       </div>
 
       {selectedPlace && (

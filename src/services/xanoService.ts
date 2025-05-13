@@ -161,7 +161,11 @@ export const xanoService = {
 
   async getPlacesInGeofence(geofenceId: string): Promise<Place[]> {
     try {
-      const response = await fetch(`${XANO_BASE_URL}/places`, {
+      const url = geofenceId 
+        ? `${XANO_BASE_URL}/places?geofence_id=${geofenceId}`
+        : `${XANO_BASE_URL}/places`;
+        
+      const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -172,7 +176,7 @@ export const xanoService = {
       }
 
       const places = await response.json();
-      return places.filter((place: Place) => place.geofence_id === geofenceId);
+      return places;
     } catch (error) {
       if (error instanceof XanoError) {
         throw error;
