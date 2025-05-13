@@ -356,7 +356,7 @@ export const GeofenceForm = () => {
         address: place.vicinity || '',
         is_visited: false,
         notes: '',
-        geofence_id: selectedGeofence.id || '',
+        geofences_id: selectedGeofence.id || '',
         location: {
           lat: place.geometry?.location?.lat() || 0,
           lng: place.geometry?.location?.lng() || 0

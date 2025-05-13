@@ -18,6 +18,7 @@ export const searchPlacesInGeofence = (
           id: result.place_id!,
           place_id: result.place_id!,
           name: result.name!,
+          geofences_id: '',
           address: result.vicinity!,
           location: {
             lat: result.geometry!.location!.lat(),

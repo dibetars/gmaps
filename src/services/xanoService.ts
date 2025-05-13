@@ -187,7 +187,7 @@ export const xanoService = {
 
   async savePlace(place: Place): Promise<Place> {
     try {
-      const response = await fetch(`${XANO_BASE_URL}/places/${place.geofence_id}`, {
+      const response = await fetch(`${XANO_BASE_URL}/places/${place.geofences_id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
