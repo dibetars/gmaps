@@ -9,6 +9,7 @@ interface GeofencePlacesProps {
   geofence: Geofence;
   onClose: () => void;
   onUpdate: (updatedGeofence: Geofence) => void;
+  onDelete: () => void;
 }
 
 const PLACE_TAGS = [
@@ -26,7 +27,7 @@ const PLACE_TAGS = [
   { id: 'fast_food', label: 'Fast Food', icon: '🍔' }
 ];
 
-export const GeofencePlaces = ({ geofence, onClose, onUpdate }: GeofencePlacesProps) => {
+export const GeofencePlaces = ({ geofence, onClose, onUpdate, onDelete }: GeofencePlacesProps) => {
   const { map } = useMapContext();
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +44,8 @@ export const GeofencePlaces = ({ geofence, onClose, onUpdate }: GeofencePlacesPr
   const ITEMS_PER_PAGE = 5;
   const [savedPlacesPage, setSavedPlacesPage] = useState(1);
   const SAVED_PLACES_PER_PAGE = 5;
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Focus map on the geofence when it's selected
   useEffect(() => {
@@ -333,6 +336,31 @@ export const GeofencePlaces = ({ geofence, onClose, onUpdate }: GeofencePlacesPr
 
   const totalSavedPlacesPages = Math.ceil(places.length / SAVED_PLACES_PER_PAGE);
 
+  const handleDeleteGeofence = async () => {
+    if (!geofence.id) return;
+    
+    try {
+      setIsDeleting(true);
+      await xanoService.deleteGeofence(geofence.id);
+      onDelete();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete geofence');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
+  const handleDeletePlace = async (placeId: string) => {
+    try {
+      await xanoService.deletePlace(placeId);
+      setPlaces(prevPlaces => prevPlaces.filter(place => place.id !== placeId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete place');
+    }
+  };
+
   if (isEditing) {
     return (
       <GeofenceEdit
@@ -362,11 +390,40 @@ export const GeofencePlaces = ({ geofence, onClose, onUpdate }: GeofencePlacesPr
           <button onClick={handleEdit} className={styles.editButton}>
             Edit
           </button>
+          <button 
+            onClick={() => setShowDeleteConfirm(true)} 
+            className={styles.deleteButton}
+            disabled={isDeleting}
+          >
+            Delete
+          </button>
           <button onClick={onClose} className={styles.closeButton}>
             ×
           </button>
         </div>
       </div>
+
+      {showDeleteConfirm && (
+        <div className={styles.deleteConfirm}>
+          <p>Are you sure you want to delete this geofence and all its places?</p>
+          <div className={styles.deleteConfirmActions}>
+            <button 
+              onClick={handleDeleteGeofence}
+              className={styles.confirmDeleteButton}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+            </button>
+            <button 
+              onClick={() => setShowDeleteConfirm(false)}
+              className={styles.cancelDeleteButton}
+              disabled={isDeleting}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className={styles.tagsSection}>
         <div className={styles.tagsGrid}>
@@ -490,8 +547,17 @@ export const GeofencePlaces = ({ geofence, onClose, onUpdate }: GeofencePlacesPr
                       </a>
                     )}
                   </div>
+                  <div className={styles.placeActions}>
                   <div className={styles.placeStatus}>
                     {place.is_visited ? 'Visited' : 'Not Visited'}
+                    </div>
+                    <button
+                      onClick={() => handleDeletePlace(place.id)}
+                      className={styles.deletePlaceButton}
+                      title="Delete place"
+                    >
+                      ×
+                    </button>
                   </div>
                 </div>
               ))}

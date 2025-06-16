@@ -6,7 +6,7 @@ import { GeofencePlaces } from './GeofencePlaces';
 import { GeofenceImportManager } from './GeofenceImportManager';
 import { xanoService } from '../services/xanoService';
 
-const libraries: ("places" | "drawing")[] = ["places", "drawing"];
+const libraries: ("places" | "drawing" | "geometry")[] = ["places", "drawing", "geometry"];
 
 // Ghana's center coordinates
 const defaultCenter = {
@@ -181,6 +181,30 @@ export const Map = () => {
     setSelectedGeofence(updatedGeofence);
   };
 
+  const handleGeofenceDelete = async () => {
+    // Remove the geofence from the map
+    if (selectedGeofence) {
+      // Remove the geofence overlay
+      const overlayToRemove = geofenceOverlays.find(overlay => {
+        const paths = overlay.getPath().getArray();
+        return paths.length === selectedGeofence.coordinates.length &&
+          paths.every((path, index) => {
+            const coord = selectedGeofence.coordinates[index];
+            return path.lat() === (coord instanceof google.maps.LatLng ? coord.lat() : coord.lat) &&
+                   path.lng() === (coord instanceof google.maps.LatLng ? coord.lng() : coord.lng);
+          });
+      });
+
+      if (overlayToRemove) {
+        overlayToRemove.setMap(null);
+        setGeofenceOverlays(prev => prev.filter(overlay => overlay !== overlayToRemove));
+      }
+
+      // Clear the selected geofence
+      setSelectedGeofence(null);
+    }
+  };
+
   const handleImport = async (importedGeofences: Geofence[], isTemporary: boolean = false) => {
     if (isTemporary) {
       // For temporary viewing, just update the temporary geofences state
@@ -267,6 +291,7 @@ export const Map = () => {
           geofence={selectedGeofence}
           onClose={() => setSelectedGeofence(null)}
           onUpdate={handleGeofenceUpdate}
+          onDelete={handleGeofenceDelete}
         />
       )}
       {showImport && (

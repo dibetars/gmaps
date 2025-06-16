@@ -5,6 +5,7 @@ import { xanoService } from '../services/xanoService';
 import { PlaceModal } from './PlaceModal';
 import { RouteGenerationModal } from './RouteGenerationModal';
 import { ReportGenerationModal } from './ReportGenerationModal';
+import { AddPlaceModal } from './AddPlaceModal';
 import styles from './PlacesList.module.css';
 
 interface GeofencePagination {
@@ -17,16 +18,28 @@ interface GeofencePagination {
 type SortOption = 'name' | 'date' | 'status';
 type FilterOption = 'all' | 'visited' | 'not-visited';
 
-const PlaceCard = ({ place, onClick }: { place: Place; onClick: () => void }) => (
+const PlaceCard = ({ place, onClick, onDelete }: { place: Place; onClick: () => void; onDelete: () => void }) => (
   <div 
     className={`${styles.placeCard} ${place.is_visited ? styles.visited : ''}`}
     onClick={onClick}
   >
     <div className={styles.placeHeader}>
       <h4>{place.name}</h4>
-      <span className={`${styles.statusBadge} ${place.is_visited ? styles.visited : styles.notVisited}`}>
-        {place.is_visited ? 'Visited' : 'Not Visited'}
-      </span>
+      <div className={styles.placeActions}>
+        <span className={`${styles.statusBadge} ${place.is_visited ? styles.visited : styles.notVisited}`}>
+          {place.is_visited ? 'Visited' : 'Not Visited'}
+        </span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className={styles.deleteButton}
+          title="Delete place"
+        >
+          ×
+        </button>
+      </div>
     </div>
     <p className={styles.placeAddress}>{place.address}</p>
     {place.is_visited && place.date_visited && (
@@ -68,7 +81,8 @@ const GeofenceSection = ({
   currentPage, 
   itemsPerPage, 
   onPlaceClick,
-  onPageChange 
+  onPageChange,
+  onDeletePlace
 }: { 
   places: Place[];
   geofenceName: string;
@@ -76,6 +90,7 @@ const GeofenceSection = ({
   itemsPerPage: number;
   onPlaceClick: (place: Place) => void;
   onPageChange: (page: number) => void;
+  onDeletePlace: (placeId: string) => void;
 }) => {
   const [showRouteModal, setShowRouteModal] = useState(false);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -106,6 +121,7 @@ const GeofenceSection = ({
             key={place.id}
             place={place}
             onClick={() => onPlaceClick(place)}
+            onDelete={() => place.id && onDeletePlace(place.id)}
           />
         ))}
       </div>
@@ -151,9 +167,12 @@ export const PlacesList = () => {
   const [pagination, setPagination] = useState<GeofencePagination>({});
   const [geofenceNames, setGeofenceNames] = useState<Record<string, string>>({});
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showAddPlaceModal, setShowAddPlaceModal] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch geofences to get names
   useEffect(() => {
@@ -320,6 +339,23 @@ export const PlacesList = () => {
     }
   };
 
+  const handleDeletePlace = async (placeId: string) => {
+    try {
+      setIsDeleting(true);
+      await xanoService.deletePlace(placeId);
+      setPlaces(prevPlaces => prevPlaces.filter(place => place.id !== placeId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete place');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(null);
+    }
+  };
+
+  const handlePlaceAdded = (newPlace: Place) => {
+    setPlaces(prevPlaces => [...prevPlaces, newPlace]);
+  };
+
   if (isLoading) {
     return (
       <div className={styles.placesContainer}>
@@ -371,6 +407,12 @@ export const PlacesList = () => {
             </select>
           </div>
           <button 
+            className={styles.addButton}
+            onClick={() => setShowAddPlaceModal(true)}
+          >
+            ➕ Add Place
+          </button>
+          <button 
             className={styles.reportButton}
             onClick={() => setShowReportModal(true)}
             disabled={true}
@@ -393,6 +435,7 @@ export const PlacesList = () => {
               itemsPerPage={pagination[geofenceId]?.itemsPerPage || 5}
               onPlaceClick={setSelectedPlace}
               onPageChange={(page) => handlePageChange(geofenceId, page)}
+              onDeletePlace={(placeId) => setShowDeleteConfirm(placeId)}
             />
           );
         })}
@@ -407,11 +450,40 @@ export const PlacesList = () => {
         />
       )}
 
+      {showAddPlaceModal && (
+        <AddPlaceModal
+          onClose={() => setShowAddPlaceModal(false)}
+          onPlaceAdded={handlePlaceAdded}
+        />
+      )}
+
       {showReportModal && (
         <ReportGenerationModal
           places={places}
           onClose={() => setShowReportModal(false)}
         />
+      )}
+
+      {showDeleteConfirm && (
+        <div className={styles.deleteConfirm}>
+          <p>Are you sure you want to delete this place?</p>
+          <div className={styles.deleteConfirmActions}>
+            <button 
+              onClick={() => handleDeletePlace(showDeleteConfirm)}
+              className={styles.confirmDeleteButton}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+            </button>
+            <button 
+              onClick={() => setShowDeleteConfirm(null)}
+              className={styles.cancelDeleteButton}
+              disabled={isDeleting}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -207,4 +207,40 @@ export const xanoService = {
       throw new XanoError('Network error while saving place');
     }
   },
+
+  async deleteGeofence(geofenceId: string): Promise<void> {
+    try {
+      const response = await fetch(`${XANO_BASE_URL}/geofences/${geofenceId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete geofence');
+      }
+    } catch (error) {
+      console.error('Error deleting geofence:', error);
+      throw error;
+    }
+  },
+
+  async deletePlace(placeId: string): Promise<void> {
+    try {
+      const response = await fetch(`${XANO_BASE_URL}/places/${placeId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete place');
+      }
+    } catch (error) {
+      console.error('Error deleting place:', error);
+      throw error;
+    }
+  },
 }; 

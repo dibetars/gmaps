@@ -50,52 +50,44 @@ export const GeofenceForm = () => {
   // Effect to handle drawing manager state based on geofence name
   useEffect(() => {
     if (drawingManager) {
-      if (!geofenceName.trim()) {
-        // Disable drawing tools if no name is provided
-        drawingManager.setDrawingMode(null);
-        drawingManager.setOptions({
-          drawingControl: false
-        });
-      } else {
-        // Enable drawing tools when name is provided
-        drawingManager.setOptions({
-          drawingControl: true,
-          drawingControlOptions: {
-            position: google.maps.ControlPosition.TOP_CENTER,
-            drawingModes: [
-              google.maps.drawing.OverlayType.CIRCLE,
-              google.maps.drawing.OverlayType.POLYGON
-            ]
-          },
-          circleOptions: {
-            fillColor: "#2563eb",
-            fillOpacity: 0.2,
-            strokeWeight: 2,
-            strokeColor: "#2563eb",
-            clickable: true,
-            editable: true,
-            zIndex: 1
-          },
-          polygonOptions: {
-            fillColor: "#2563eb",
-            fillOpacity: 0.2,
-            strokeWeight: 2,
-            strokeColor: "#2563eb",
-            clickable: true,
-            editable: true,
-            zIndex: 1
-          }
-        });
-        // Set the drawing mode to null to show the drawing controls
-        drawingManager.setDrawingMode(null);
-      }
+      const options = {
+        drawingControl: !!geofenceName.trim(),
+        drawingControlOptions: {
+          position: google.maps.ControlPosition.TOP_CENTER,
+          drawingModes: [
+            google.maps.drawing.OverlayType.CIRCLE,
+            google.maps.drawing.OverlayType.POLYGON
+          ]
+        },
+        circleOptions: {
+          fillColor: "#2563eb",
+          fillOpacity: 0.2,
+          strokeWeight: 2,
+          strokeColor: "#2563eb",
+          clickable: true,
+          editable: true,
+          zIndex: 1
+        },
+        polygonOptions: {
+          fillColor: "#2563eb",
+          fillOpacity: 0.2,
+          strokeWeight: 2,
+          strokeColor: "#2563eb",
+          clickable: true,
+          editable: true,
+          zIndex: 1
+        }
+      };
+
+      drawingManager.setOptions(options);
+      drawingManager.setDrawingMode(null);
     }
   }, [drawingManager, geofenceName]);
 
   // Initialize drawing manager
   useEffect(() => {
     if (map && !drawingManager) {
-      const newDrawingManager = new google.maps.drawing.DrawingManager({
+      const drawingOptions = {
         drawingMode: null,
         drawingControl: false,
         drawingControlOptions: {
@@ -123,13 +115,149 @@ export const GeofenceForm = () => {
           editable: true,
           zIndex: 1
         }
-      });
+      };
+
+      const newDrawingManager = new google.maps.drawing.DrawingManager(drawingOptions);
       newDrawingManager.setMap(map);
       setDrawingManager(newDrawingManager);
+
+      // Create info window for drawing measurements
+      const drawingInfoWindow = new google.maps.InfoWindow();
+      let mouseMoveListener: google.maps.MapsEventListener | null = null;
+      let currentPath: google.maps.MVCArray<google.maps.LatLng> | null = null;
+
+      // Add listener for drawing mode changes
+      google.maps.event.addListener(newDrawingManager, 'drawingmode_changed', () => {
+        // Remove existing listener if any
+        if (mouseMoveListener) {
+          google.maps.event.removeListener(mouseMoveListener);
+          mouseMoveListener = null;
+        }
+        drawingInfoWindow.close();
+
+        // Add new listener for polygon drawing
+        if (newDrawingManager.getDrawingMode() === google.maps.drawing.OverlayType.POLYGON) {
+          mouseMoveListener = google.maps.event.addListener(map, 'mousemove', (e: google.maps.MapMouseEvent) => {
+            if (!e.latLng) return;
+            
+            // Get the current path from the drawing manager
+            const path = (newDrawingManager as any).getPath();
+            if (!path || path.getLength() === 0) return;
+            
+            // Calculate distance from last point to current mouse position
+            const lastPoint = path.getAt(path.getLength() - 1);
+            const distance = google.maps.geometry.spherical.computeDistanceBetween(
+              lastPoint,
+              e.latLng
+            );
+            
+            // Show distance measurement
+            drawingInfoWindow.setContent(`
+              <div style="font-family: Arial, sans-serif; padding: 8px;">
+                <div>Distance: ${(distance / 1000).toFixed(2)} km</div>
+              </div>
+            `);
+            drawingInfoWindow.setPosition(e.latLng);
+            drawingInfoWindow.open(map);
+          });
+        }
+      });
 
       // Add listener for overlay completion
       google.maps.event.addListener(newDrawingManager, 'overlaycomplete', (overlay: google.maps.drawing.OverlayCompleteEvent) => {
         console.log('Geofence drawn:', overlay.type);
+        
+        // Remove drawing measurement listener
+        if (mouseMoveListener) {
+          google.maps.event.removeListener(mouseMoveListener);
+          mouseMoveListener = null;
+        }
+        drawingInfoWindow.close();
+        
+        // Create info window for measurements
+        const infoWindow = new google.maps.InfoWindow();
+        
+        if (overlay.type === 'circle') {
+          const circle = overlay.overlay as google.maps.Circle;
+          const radius = circle.getRadius();
+          const center = circle.getCenter()!;
+          
+          // Calculate area (πr²)
+          const area = Math.PI * Math.pow(radius, 2);
+          
+          // Show measurements
+          infoWindow.setContent(`
+            <div style="font-family: Arial, sans-serif; padding: 8px;">
+              <div style="margin-bottom: 4px;">Radius: ${(radius / 1000).toFixed(2)} km</div>
+              <div>Area: ${(area / 1000000).toFixed(2)} km²</div>
+            </div>
+          `);
+          infoWindow.setPosition(center);
+          infoWindow.open(map);
+          
+          // Update measurements when circle is edited
+          circle.addListener('radius_changed', () => {
+            const newRadius = circle.getRadius();
+            const newArea = Math.PI * Math.pow(newRadius, 2);
+            infoWindow.setContent(`
+              <div style="font-family: Arial, sans-serif; padding: 8px;">
+                <div style="margin-bottom: 4px;">Radius: ${(newRadius / 1000).toFixed(2)} km</div>
+                <div>Area: ${(newArea / 1000000).toFixed(2)} km²</div>
+              </div>
+            `);
+          });
+        } else if (overlay.type === 'polygon') {
+          const polygon = overlay.overlay as google.maps.Polygon;
+          const path = polygon.getPath();
+          
+          // Calculate perimeter and area
+          const calculateMeasurements = () => {
+            let perimeter = 0;
+            let area = 0;
+            const pathArray = path.getArray();
+            
+            // Calculate perimeter
+            for (let i = 0; i < pathArray.length; i++) {
+              const j = (i + 1) % pathArray.length;
+              perimeter += google.maps.geometry.spherical.computeDistanceBetween(
+                pathArray[i],
+                pathArray[j]
+              );
+            }
+            
+            // Calculate area using the shoelace formula
+            for (let i = 0; i < pathArray.length; i++) {
+              const j = (i + 1) % pathArray.length;
+              area += pathArray[i].lng() * pathArray[j].lat();
+              area -= pathArray[j].lng() * pathArray[i].lat();
+            }
+            area = Math.abs(area) * 111319.9; // Convert to square meters (approximate)
+            
+            return { perimeter, area };
+          };
+          
+          // Show initial measurements
+          const { perimeter, area } = calculateMeasurements();
+          infoWindow.setContent(`
+            <div style="font-family: Arial, sans-serif; padding: 8px;">
+              <div style="margin-bottom: 4px;">Perimeter: ${(perimeter / 1000).toFixed(2)} km</div>
+              <div>Area: ${(area / 1000000).toFixed(2)} km²</div>
+            </div>
+          `);
+          infoWindow.setPosition(path.getArray()[0]);
+          infoWindow.open(map);
+          
+          // Update measurements when polygon is edited
+          polygon.addListener('paths_changed', () => {
+            const { perimeter, area } = calculateMeasurements();
+            infoWindow.setContent(`
+              <div style="font-family: Arial, sans-serif; padding: 8px;">
+                <div style="margin-bottom: 4px;">Perimeter: ${(perimeter / 1000).toFixed(2)} km</div>
+                <div>Area: ${(area / 1000000).toFixed(2)} km²</div>
+              </div>
+            `);
+          });
+        }
         
         const geofence: Geofence = {
           name: geofenceName,
