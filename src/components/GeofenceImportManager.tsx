@@ -257,7 +257,6 @@ export const GeofenceImportManager = ({ onImport, onClose }: GeofenceImportManag
             type: 'polygon',
             coordinates: subPolygon.getPath().getArray(),
             metadata: {
-              ...polygon.metadata,
               subdivision_index: i * numSubdivisionsY + j + 1,
               original_name: polygon.name
             }

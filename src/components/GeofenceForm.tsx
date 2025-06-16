@@ -124,7 +124,6 @@ export const GeofenceForm = () => {
       // Create info window for drawing measurements
       const drawingInfoWindow = new google.maps.InfoWindow();
       let mouseMoveListener: google.maps.MapsEventListener | null = null;
-      let currentPath: google.maps.MVCArray<google.maps.LatLng> | null = null;
 
       // Add listener for drawing mode changes
       google.maps.event.addListener(newDrawingManager, 'drawingmode_changed', () => {

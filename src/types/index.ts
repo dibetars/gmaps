@@ -6,6 +6,11 @@ export interface Geofence {
   radius?: number; // For circles
   created_at?: string;
   updated_at?: string;
+  metadata?: {
+    subdivision_index?: number;
+    original_name?: string;
+    [key: string]: any;
+  };
 }
 
 export interface Place {

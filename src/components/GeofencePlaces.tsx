@@ -552,9 +552,10 @@ export const GeofencePlaces = ({ geofence, onClose, onUpdate, onDelete }: Geofen
                     {place.is_visited ? 'Visited' : 'Not Visited'}
                     </div>
                     <button
-                      onClick={() => handleDeletePlace(place.id)}
+                      onClick={() => place.id && handleDeletePlace(place.id)}
                       className={styles.deletePlaceButton}
                       title="Delete place"
+                      disabled={!place.id}
                     >
                       ×
                     </button>
