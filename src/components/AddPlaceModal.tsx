@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react';
-import type { Place } from '../types';
+import type { Place, Geofence } from '../types';
 import { xanoService } from '../services/xanoService';
 import styles from './AddPlaceModal.module.css';
-
-interface Geofence {
-  id: string;
-  name: string;
-}
 
 interface AddPlaceModalProps {
   onClose: () => void;
@@ -14,6 +9,7 @@ interface AddPlaceModalProps {
 }
 
 type Step = 'select-geofence' | 'search-place' | 'place-details' | 'preview';
+type Position = 'Manager' | 'Store Clerk' | 'Sales Attendant' | 'Owner';
 
 export const AddPlaceModal = ({ onClose, onPlaceAdded }: AddPlaceModalProps) => {
   const [currentStep, setCurrentStep] = useState<Step>('select-geofence');
@@ -31,7 +27,7 @@ export const AddPlaceModal = ({ onClose, onPlaceAdded }: AddPlaceModalProps) => 
     website: '',
     phone_number: '',
     point_of_contact: '',
-    position: '',
+    position: undefined,
     email: '',
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -71,9 +67,9 @@ export const AddPlaceModal = ({ onClose, onPlaceAdded }: AddPlaceModalProps) => 
       const response = await autocompleteService.getPlacePredictions({
         input: searchQuery,
         types: ['establishment'],
-        componentRestrictions: { country: 'gh' },
-        location: new google.maps.LatLng(7.9465, -1.0232),
-        radius: 500000,
+        componentRestrictions: { country: 'gh' }, // Restrict to Ghana
+        location: new google.maps.LatLng(7.9465, -1.0232), // Center of Ghana
+        radius: 500000, // 500km radius
       });
       setSearchResults(response.predictions);
     } catch (err) {
@@ -150,9 +146,10 @@ export const AddPlaceModal = ({ onClose, onPlaceAdded }: AddPlaceModalProps) => 
             <div className={styles.geofenceList}>
               {geofences.map(geofence => (
                 <button
-                  key={geofence.id}
+                  key={geofence.id || geofence.name}
                   className={styles.geofenceButton}
-                  onClick={() => handleGeofenceSelect(geofence.id)}
+                  onClick={() => geofence.id && handleGeofenceSelect(geofence.id)}
+                  disabled={!geofence.id}
                 >
                   {geofence.name}
                 </button>
@@ -210,7 +207,7 @@ export const AddPlaceModal = ({ onClose, onPlaceAdded }: AddPlaceModalProps) => 
                 <label>Position</label>
                 <select
                   value={placeDetails.position || ''}
-                  onChange={(e) => setPlaceDetails({ ...placeDetails, position: e.target.value as any })}
+                  onChange={(e) => setPlaceDetails({ ...placeDetails, position: e.target.value as Position | undefined })}
                   className={styles.input}
                 >
                   <option value="">Select position</option>
