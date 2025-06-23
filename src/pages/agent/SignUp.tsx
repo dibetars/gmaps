@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useLoadScript } from '@react-google-maps/api';
 import { agentAuthService } from '../../services/auth';
+import logo from '../../assets/logo.png';
 import './Login.css';
 
 interface SignUpFormData {
@@ -142,7 +143,7 @@ const AgentSignUp: React.FC = () => {
             ← Back to Login
           </Link>
           <div className="login-logo">
-            <h1>MapOps</h1>
+            <img src={logo} alt="MapOps Logo" />
             <p>Agent Registration</p>
           </div>
         </div>

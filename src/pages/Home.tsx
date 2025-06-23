@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import logo from '../assets/logo.png';
 import './Home.css';
 
 const Home: React.FC = () => {
@@ -9,7 +10,7 @@ const Home: React.FC = () => {
       <nav className="navbar">
         <div className="nav-container">
           <div className="nav-logo">
-            <h2>MapOps</h2>
+            <img src={logo} alt="MapOps Logo" className="nav-logo-img" />
           </div>
           <div className="nav-links">
             <Link to="/dashboard" className="nav-link admin-login">

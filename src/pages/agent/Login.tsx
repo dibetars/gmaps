@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { agentAuthService } from '../../services/auth';
 import { restaurantService } from '../../services/restaurantService';
+import logo from '../../assets/logo.png';
 import './Login.css';
 
 const AgentLogin: React.FC = () => {
@@ -49,8 +50,7 @@ const AgentLogin: React.FC = () => {
             ← Back to Home
           </Link>
           <div className="login-logo">
-            <h1>MapOps</h1>
-            <p>Agent Portal</p>
+            <img src={logo} alt="MapOps Logo" />
           </div>
         </div>
 
