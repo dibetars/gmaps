@@ -49,7 +49,7 @@ const AgentSignUp: React.FC = () => {
         if (place.formatted_address) {
           setFormData(prev => ({
             ...prev,
-            location: place.formatted_address
+            location: place.formatted_address || ''
           }));
         }
       });
@@ -121,7 +121,7 @@ const AgentSignUp: React.FC = () => {
         education_level: formData.educationLevel
       };
 
-      const response = await agentAuthService.signUp(apiData);
+      await agentAuthService.signUp(apiData);
       
       setSuccess('Sign up successful! Please wait for admin approval.');
       setTimeout(() => {
