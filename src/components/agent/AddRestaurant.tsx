@@ -57,6 +57,15 @@ interface UploadProgress {
   overall: number;
 }
 
+interface SavedDraft {
+  id: string;
+  timestamp: number;
+  businessName: string;
+  formData: RestaurantForm;
+  selectedItems: SelectedItem[];
+  step: number;
+}
+
 const libraries: ("places" | "drawing")[] = ["places"];
 
 const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
@@ -89,6 +98,12 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [selectedItemForPrice, setSelectedItemForPrice] = useState<InventoryItem | null>(null);
   const [itemPrice, setItemPrice] = useState<string>('');
   const [priceError, setPriceError] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [showAllCategories, setShowAllCategories] = useState<boolean>(false);
+  const [savedDrafts, setSavedDrafts] = useState<SavedDraft[]>([]);
+  const [showDraftPanel, setShowDraftPanel] = useState<boolean>(false);
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '') as string,
@@ -111,7 +126,7 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   useEffect(() => {
     if (isLoaded && autocompleteInput.current) {
       const autocomplete = new window.google.maps.places.Autocomplete(autocompleteInput.current, {
-        types: ['address'],
+        types: ['establishment'],
         componentRestrictions: { country: 'GH' }
       });
 
@@ -170,6 +185,82 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setSelectedItemForPrice(null);
     setItemPrice('');
     setPriceError('');
+  };
+
+  // Get unique subcategories from inventory items
+  const getUniqueSubcategories = () => {
+    const subcategories = inventoryItems.map(item => item.Subcategory);
+    return Array.from(new Set(subcategories)).sort();
+  };
+
+  // Filter inventory items based on search query and selected category
+  const getFilteredItems = () => {
+    return inventoryItems.filter(item => {
+      const matchesSearch = item.Name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           item.Subcategory.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === 'all' || item.Subcategory === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  };
+
+  // Draft management functions
+  const loadDraftsFromStorage = () => {
+    try {
+      const drafts = localStorage.getItem('restaurant_drafts');
+      return drafts ? JSON.parse(drafts) : [];
+    } catch (error) {
+      console.error('Error loading drafts:', error);
+      return [];
+    }
+  };
+
+  const saveDraftToStorage = (draft: SavedDraft) => {
+    try {
+      const existingDrafts = loadDraftsFromStorage().filter((d: SavedDraft) => d.id !== draft.id);
+      const updatedDrafts = [...existingDrafts, draft];
+      localStorage.setItem('restaurant_drafts', JSON.stringify(updatedDrafts));
+      setSavedDrafts(updatedDrafts);
+    } catch (error) {
+      console.error('Error saving draft:', error);
+    }
+  };
+
+  const deleteDraft = (draftId: string) => {
+    try {
+      const updatedDrafts = savedDrafts.filter(draft => draft.id !== draftId);
+      localStorage.setItem('restaurant_drafts', JSON.stringify(updatedDrafts));
+      setSavedDrafts(updatedDrafts);
+      if (currentDraftId === draftId) {
+        setCurrentDraftId(null);
+      }
+    } catch (error) {
+      console.error('Error deleting draft:', error);
+    }
+  };
+
+  const loadDraft = (draft: SavedDraft) => {
+    setFormData(draft.formData);
+    setSelectedItems(draft.selectedItems);
+    setStep(draft.step);
+    setCurrentDraftId(draft.id);
+    setShowDraftPanel(false);
+  };
+
+  const saveDraft = () => {
+    if (!formData.business_name && selectedItems.length === 0) return;
+
+    const draftId = currentDraftId || `draft_${Date.now()}`;
+    const draft: SavedDraft = {
+      id: draftId,
+      timestamp: Date.now(),
+      businessName: formData.business_name || 'Untitled Restaurant',
+      formData,
+      selectedItems,
+      step
+    };
+    
+    saveDraftToStorage(draft);
+    setCurrentDraftId(draftId);
   };
 
   const updateOverallProgress = (restaurantProgress: number, inventoryProgress: { [key: string]: number }) => {
@@ -255,6 +346,11 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         });
       }
 
+      // Clear the current draft after successful submission
+      if (currentDraftId) {
+        deleteDraft(currentDraftId);
+      }
+
       onClose();
       window.location.reload();
     } catch (error) {
@@ -320,6 +416,45 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     );
   };
 
+  // Add CSS for responsive grid
+  React.useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .restaurant-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 768px) {
+        .restaurant-form-grid {
+          grid-template-columns: 1fr;
+        }
+        .restaurant-form-grid .full-width {
+          grid-column: span 1;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  // Load drafts on component mount
+  useEffect(() => {
+    const drafts = loadDraftsFromStorage();
+    setSavedDrafts(drafts);
+  }, []);
+
+  // Auto-save draft when form data or selected items change
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      saveDraft();
+    }, 2000); // Auto-save after 2 seconds of inactivity
+
+    return () => clearTimeout(timeoutId);
+  }, [formData, selectedItems, step]);
+
   return (
     <div style={{
       backgroundColor: 'white',
@@ -343,163 +478,337 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           margin: 0
         }}>
           {step === 1 ? 'Add Restaurant Details' : step === 2 ? 'Select Menu Items' : 'Additional Notes'}
+          {currentDraftId && (
+            <span style={{
+              marginLeft: '0.5rem',
+              fontSize: '0.75rem',
+              color: '#059669',
+              fontWeight: 'normal'
+            }}>
+              • Auto-saved
+            </span>
+          )}
         </h2>
-        <button
-          onClick={onClose}
-          style={{
-            background: 'none',
-            border: 'none',
-            fontSize: '1.5rem',
-            color: '#6b7280',
-            cursor: 'pointer'
-          }}
-        >
-          ×
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          {/* Draft Panel Trigger */}
+          {savedDrafts.length > 0 && (
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setShowDraftPanel(!showDraftPanel)}
+                onMouseEnter={() => setShowDraftPanel(true)}
+                style={{
+                  background: 'none',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.375rem',
+                  padding: '0.5rem',
+                  color: '#6b7280',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
+                }}
+              >
+                📄 {savedDrafts.length} Draft{savedDrafts.length > 1 ? 's' : ''}
+              </button>
+
+              {/* Draft Panel */}
+              {showDraftPanel && (
+                <div 
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    marginTop: '0.5rem',
+                    backgroundColor: 'white',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                    padding: '1rem',
+                    minWidth: '300px',
+                    maxHeight: '400px',
+                    overflowY: 'auto',
+                    zIndex: 1000
+                  }}
+                  onMouseEnter={() => setShowDraftPanel(true)}
+                  onMouseLeave={() => setShowDraftPanel(false)}
+                >
+                  <h3 style={{
+                    margin: '0 0 1rem 0',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    color: '#1f2937'
+                  }}>
+                    Saved Drafts
+                  </h3>
+                  
+                  {savedDrafts.map(draft => (
+                    <div
+                      key={draft.id}
+                      style={{
+                        border: `1px solid ${currentDraftId === draft.id ? '#2563eb' : '#e5e7eb'}`,
+                        borderRadius: '0.375rem',
+                        padding: '0.75rem',
+                        marginBottom: '0.5rem',
+                        backgroundColor: currentDraftId === draft.id ? '#eff6ff' : 'white'
+                      }}
+                    >
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        marginBottom: '0.5rem'
+                      }}>
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{
+                            margin: '0 0 0.25rem 0',
+                            fontSize: '0.875rem',
+                            fontWeight: '500',
+                            color: '#1f2937'
+                          }}>
+                            {draft.businessName}
+                          </h4>
+                          <p style={{
+                            margin: '0',
+                            fontSize: '0.75rem',
+                            color: '#6b7280'
+                          }}>
+                            Step {draft.step} • {new Date(draft.timestamp).toLocaleDateString()} at {new Date(draft.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                          {draft.selectedItems.length > 0 && (
+                            <p style={{
+                              margin: '0.25rem 0 0 0',
+                              fontSize: '0.75rem',
+                              color: '#059669'
+                            }}>
+                              {draft.selectedItems.length} item{draft.selectedItems.length > 1 ? 's' : ''} selected
+                            </p>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.25rem' }}>
+                          <button
+                            onClick={() => loadDraft(draft)}
+                            style={{
+                              padding: '0.25rem 0.5rem',
+                              backgroundColor: '#2563eb',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '0.25rem',
+                              fontSize: '0.75rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Load
+                          </button>
+                          <button
+                            onClick={() => deleteDraft(draft.id)}
+                            style={{
+                              padding: '0.25rem 0.5rem',
+                              backgroundColor: '#ef4444',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '0.25rem',
+                              fontSize: '0.75rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {savedDrafts.length > 3 && (
+                    <p style={{
+                      margin: '0.5rem 0 0 0',
+                      fontSize: '0.75rem',
+                      color: '#6b7280',
+                      textAlign: 'center'
+                    }}>
+                      Showing recent drafts
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '1.5rem',
+              color: '#6b7280',
+              cursor: 'pointer'
+            }}
+          >
+            ×
+          </button>
+        </div>
       </div>
 
       {step === 1 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
-              Business Name
-            </label>
-            <input
-              type="text"
-              name="business_name"
-              value={formData.business_name}
-              onChange={handleFormChange}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem'
-              }}
-            />
-          </div>
+          <div className="restaurant-form-grid">
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
+                Business Name
+              </label>
+              <input
+                type="text"
+                name="business_name"
+                value={formData.business_name}
+                onChange={handleFormChange}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.375rem'
+                }}
+              />
+            </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleFormChange}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem'
-              }}
-            />
-          </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
+                Business Type
+              </label>
+              <select
+                value={formData.business_type}
+                onChange={(e) => setFormData({ ...formData, business_type: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.375rem'
+                }}
+              >
+                <option value="">Select business type</option>
+                <option value="Restaurant">Restaurant</option>
+                <option value="Fast Food">Fast Food</option>
+                <option value="Cafe">Cafe</option>
+                <option value="Groceries">Groceries</option>
+                <option value="Pharmacy">Pharmacy</option>
+                <option value="Online Store">Online Store</option>
+                <option value="Supermarket">Supermarket</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
-              Contact Name
-            </label>
-            <input
-              type="text"
-              name="contact_name"
-              value={formData.contact_name}
-              onChange={handleFormChange}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem'
-              }}
-            />
-          </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
+                Contact Name
+              </label>
+              <input
+                type="text"
+                name="contact_name"
+                value={formData.contact_name}
+                onChange={handleFormChange}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.375rem'
+                }}
+              />
+            </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
-              MoMo Number
-            </label>
-            <input
-              type="text"
-              name="momo_number"
-              value={formData.momo_number}
-              onChange={handleFormChange}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem'
-              }}
-            />
-          </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
+                MoMo Number
+              </label>
+              <input
+                type="text"
+                name="momo_number"
+                value={formData.momo_number}
+                onChange={handleFormChange}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.375rem'
+                }}
+              />
+            </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
-              Business Type
-            </label>
-            <select
-              value={formData.business_type}
-              onChange={(e) => setFormData({ ...formData, business_type: e.target.value })}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem'
-              }}
-            >
-              <option value="">Select business type</option>
-              <option value="Restaurant">Restaurant</option>
-              <option value="Fast Food">Fast Food</option>
-              <option value="Cafe">Cafe</option>
-              <option value="Groceries">Groceries</option>
-              <option value="Pharmacy">Pharmacy</option>
-              <option value="Online Store">Online Store</option>
-              <option value="Supermarket">Supermarket</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
+            <div style={{ gridColumn: 'span 2' }} className="full-width">
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
+                Email
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleFormChange}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.375rem'
+                }}
+              />
+            </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
-              Branch Name
-            </label>
-            <input
-              type="text"
-              name="branch_name"
-              value={formData.branches[0].name}
-              onChange={handleFormChange}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem'
-              }}
-            />
-          </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
+                Branch Name
+              </label>
+              <input
+                type="text"
+                name="branch_name"
+                value={formData.branches[0].name}
+                onChange={handleFormChange}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.375rem'
+                }}
+              />
+            </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
-              Branch Address
-            </label>
-            <input
-              ref={autocompleteInput}
-              type="text"
-              name="branch_address"
-              value={formData.branches[0].address}
-              onChange={handleAddressChange}
-              placeholder="Enter full address..."
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem'
-              }}
-            />
-          </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
+                Branch Phone Number
+              </label>
+              <input
+                type="text"
+                name="branch_phoneNumber"
+                value={formData.branches[0].phoneNumber}
+                onChange={handleFormChange}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.375rem'
+                }}
+              />
+            </div>
 
-          {!isLoaded && (
-            <>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <div style={{ flex: 1 }}>
+            <div style={{ gridColumn: 'span 2' }} className="full-width">
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
+                Branch Address
+              </label>
+              <input
+                ref={autocompleteInput}
+                type="text"
+                name="branch_address"
+                value={formData.branches[0].address}
+                onChange={handleAddressChange}
+                placeholder="Enter full address..."
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.375rem'
+                }}
+              />
+            </div>
+
+            {!isLoaded && (
+              <>
+                <div>
                   <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
                     Latitude
                   </label>
@@ -517,7 +826,8 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     }}
                   />
                 </div>
-                <div style={{ flex: 1 }}>
+
+                <div>
                   <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
                     Longitude
                   </label>
@@ -535,45 +845,27 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     }}
                   />
                 </div>
-              </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
-                  City
-                </label>
-                <input
-                  type="text"
-                  name="branch_city"
-                  value={formData.branches[0].city}
-                  onChange={handleAddressChange}
-                  placeholder="e.g. Accra Metropolitan"
-                  style={{
-                    width: '100%',
-                    padding: '0.5rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.375rem'
-                  }}
-                />
-              </div>
-            </>
-          )}
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
-              Branch Phone Number
-            </label>
-            <input
-              type="text"
-              name="branch_phoneNumber"
-              value={formData.branches[0].phoneNumber}
-              onChange={handleFormChange}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem'
-              }}
-            />
+                <div style={{ gridColumn: 'span 2' }} className="full-width">
+                  <label style={{ display: 'block', marginBottom: '0.5rem', color: '#374151' }}>
+                    City
+                  </label>
+                  <input
+                    type="text"
+                    name="branch_city"
+                    value={formData.branches[0].city}
+                    onChange={handleAddressChange}
+                    placeholder="e.g. Accra Metropolitan"
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem'
+                    }}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <button
@@ -595,49 +887,216 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         </div>
       ) : step === 2 ? (
         <div>
+          {/* Search Bar */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ marginBottom: '1rem' }}>
+              <input
+                type="text"
+                placeholder="Search menu items..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '1rem',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            {/* Category Filters */}
+            <div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: '0.5rem'
+              }}>
+                <span style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginRight: '1rem'
+                }}>
+                  Categories:
+                </span>
+                {getUniqueSubcategories().length > 10 && (
+                  <button
+                    onClick={() => setShowAllCategories(!showAllCategories)}
+                    style={{
+                      padding: '0.25rem 0.5rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      backgroundColor: 'white',
+                      color: '#6b7280'
+                    }}
+                  >
+                    {showAllCategories ? 'Show Less' : `Show All (${getUniqueSubcategories().length})`}
+                  </button>
+                )}
+              </div>
+              
+              <div style={{
+                display: 'flex',
+                gap: '0.5rem',
+                overflowX: 'auto',
+                paddingBottom: '0.5rem',
+                scrollbarWidth: 'thin'
+              }}>
+                <button
+                  onClick={() => setSelectedCategory('all')}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    border: 'none',
+                    borderRadius: '1.5rem',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    backgroundColor: selectedCategory === 'all' ? '#2563eb' : '#f3f4f6',
+                    color: selectedCategory === 'all' ? 'white' : '#374151',
+                    transition: 'all 0.2s ease',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0
+                  }}
+                >
+                  All ({inventoryItems.length})
+                </button>
+                {getUniqueSubcategories()
+                  .slice(0, showAllCategories ? undefined : 10)
+                  .map(subcategory => {
+                    const count = inventoryItems.filter(item => item.Subcategory === subcategory).length;
+                    return (
+                      <button
+                        key={subcategory}
+                        onClick={() => setSelectedCategory(subcategory)}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          border: 'none',
+                          borderRadius: '1.5rem',
+                          fontSize: '0.875rem',
+                          cursor: 'pointer',
+                          backgroundColor: selectedCategory === subcategory ? '#2563eb' : '#f3f4f6',
+                          color: selectedCategory === subcategory ? 'white' : '#374151',
+                          transition: 'all 0.2s ease',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0
+                        }}
+                      >
+                        {subcategory} ({count})
+                      </button>
+                    );
+                  })}
+                {!showAllCategories && getUniqueSubcategories().length > 10 && (
+                  <button
+                    onClick={() => setShowAllCategories(true)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      border: '2px dashed #d1d5db',
+                      borderRadius: '1.5rem',
+                      fontSize: '0.875rem',
+                      cursor: 'pointer',
+                      backgroundColor: 'transparent',
+                      color: '#6b7280',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0
+                    }}
+                  >
+                    +{getUniqueSubcategories().length - 10} more
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Results count */}
+            <div style={{
+              marginTop: '1rem',
+              fontSize: '0.875rem',
+              color: '#6b7280'
+            }}>
+              Showing {getFilteredItems().length} of {inventoryItems.length} items
+            </div>
+          </div>
+
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
             gap: '1rem',
             marginBottom: '1.5rem'
           }}>
-            {inventoryItems.map(item => (
-              <div
-                key={item.id}
-                onClick={() => handleItemSelect(item)}
-                style={{
-                  border: '1px solid #d1d5db',
-                  borderRadius: '0.375rem',
-                  padding: '0.75rem',
-                  cursor: 'pointer',
-                  transition: 'transform 0.2s, box-shadow 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'none';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                <img
-                  src={item.image.url}
-                  alt={item.Name}
-                  style={{
-                    width: '100%',
-                    height: '150px',
-                    objectFit: 'cover',
-                    borderRadius: '0.25rem',
-                    marginBottom: '0.5rem'
-                  }}
-                />
-                <h4 style={{ margin: '0 0 0.25rem 0', color: '#1f2937' }}>{item.Name}</h4>
-                <p style={{ margin: '0', fontSize: '0.875rem', color: '#6b7280' }}>
-                  {item.Category.split(' > ')[1]} • {item.Subcategory}
+            {getFilteredItems().length === 0 ? (
+              <div style={{
+                gridColumn: '1 / -1',
+                textAlign: 'center',
+                padding: '3rem 1rem',
+                color: '#6b7280'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔍</div>
+                <h3 style={{ margin: '0 0 0.5rem 0', color: '#374151' }}>No items found</h3>
+                <p style={{ margin: '0' }}>
+                  {searchQuery ? 
+                    `No items match "${searchQuery}"` : 
+                    `No items in ${selectedCategory} category`
+                  }
                 </p>
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedCategory('all');
+                  }}
+                  style={{
+                    marginTop: '1rem',
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#2563eb',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Clear Filters
+                </button>
               </div>
-            ))}
+            ) : (
+              getFilteredItems().map(item => (
+                <div
+                  key={item.id}
+                  onClick={() => handleItemSelect(item)}
+                  style={{
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.375rem',
+                    padding: '0.75rem',
+                    cursor: 'pointer',
+                    transition: 'transform 0.2s, box-shadow 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'none';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <img
+                    src={item.image.url}
+                    alt={item.Name}
+                    style={{
+                      width: '100%',
+                      height: '150px',
+                      objectFit: 'cover',
+                      borderRadius: '0.25rem',
+                      marginBottom: '0.5rem'
+                    }}
+                  />
+                  <h4 style={{ margin: '0 0 0.25rem 0', color: '#1f2937' }}>{item.Name}</h4>
+                  <p style={{ margin: '0', fontSize: '0.875rem', color: '#6b7280' }}>
+                    {item.Category.split(' > ')[1]} • {item.Subcategory}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
 
           {/* Price Input Modal */}
@@ -987,7 +1446,7 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         </div>
       ) : (
         <div>
-          {renderProgressBar()}
+      {renderProgressBar()}
         </div>
       )}
     </div>
