@@ -11,6 +11,16 @@ interface UserData {
   email: string;
 }
 
+interface AgentSignUpData {
+  full_name: string;
+  sex: string;
+  email: string;
+  momo_number: string;
+  whatsapp_number: string;
+  location: string;
+  education_level: string;
+}
+
 export const agentAuthService = {
   async login(email: string, password: string): Promise<LoginResponse> {
     const response = await fetch(`${API_BASE_URL}/login`, {
@@ -72,5 +82,23 @@ export const agentAuthService = {
   clearSession(): void {
     localStorage.removeItem('agentAuthToken');
     localStorage.removeItem('agentAuthExpiry');
+  },
+
+  async signUp(signUpData: AgentSignUpData): Promise<any> {
+    const response = await fetch('https://api-server.krontiva.africa/api:uEBBwbSs/delikaAgents', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(signUpData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Sign up failed');
+    }
+
+    return response.json();
   },
 }; 

@@ -96,8 +96,6 @@ const AgentLogin: React.FC = () => {
               />
             </div>
 
-
-
             <button 
               type="submit" 
               className={`login-button ${isLoading ? 'loading' : ''}`}
@@ -114,7 +112,14 @@ const AgentLogin: React.FC = () => {
             </button>
           </form>
 
-
+          <div className="login-footer">
+            <p>
+              Don't have an account?{' '}
+              <Link to="/agent/signup" className="agent-link">
+                Sign up here
+              </Link>
+            </p>
+          </div>
         </div>
 
         <div className="login-features">

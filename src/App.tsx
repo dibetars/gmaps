@@ -7,6 +7,7 @@ import { PlacesList } from './components/PlacesList';
 import Dashboard from './components/Dashboard';
 import Settings from './components/Settings';
 import AgentLogin from './pages/agent/Login';
+import AgentSignUp from './pages/agent/SignUp';
 import AgentDashboard from './pages/agent/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
@@ -54,6 +55,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/dashboard" element={<AdminLogin />} />
         <Route path="/agent/login" element={<AgentLogin />} />
+        <Route path="/agent/signup" element={<AgentSignUp />} />
         <Route
           path="/agent/*"
           element={

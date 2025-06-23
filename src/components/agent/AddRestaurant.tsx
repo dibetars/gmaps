@@ -19,6 +19,7 @@ interface RestaurantForm {
   contact_name: string;
   momo_number: string;
   business_type: string;
+  notes: string;
   branches: Branch[];
 }
 
@@ -66,6 +67,7 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     contact_name: '',
     momo_number: '',
     business_type: '',
+    notes: '',
     branches: [{
       name: '',
       address: '',
@@ -213,7 +215,8 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         approval_status: "pending",
         full_name: formData.contact_name,
         branches: formData.branches,
-        delika_onboarding_id: userData.id
+        delika_onboarding_id: userData.id,
+        Notes: formData.notes
       });
       setUploadProgress(prev => {
         const newProgress = { ...prev, restaurant: 100 };
@@ -339,7 +342,7 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           color: '#1f2937',
           margin: 0
         }}>
-          {step === 1 ? 'Add Restaurant Details' : 'Select Menu Items'}
+          {step === 1 ? 'Add Restaurant Details' : step === 2 ? 'Select Menu Items' : 'Additional Notes'}
         </h2>
         <button
           onClick={onClose}
@@ -590,7 +593,7 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             Next: Select Menu Items
           </button>
         </div>
-      ) : (
+      ) : step === 2 ? (
         <div>
           <div style={{
             display: 'grid',
@@ -864,8 +867,8 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               Back
             </button>
             <button
-              onClick={handleSubmit}
-              disabled={loading || selectedItems.length === 0}
+              onClick={() => setStep(3)}
+              disabled={selectedItems.length === 0}
               style={{
                 flex: 1,
                 padding: '0.75rem',
@@ -874,15 +877,119 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 border: 'none',
                 borderRadius: '0.375rem',
                 cursor: 'pointer',
-                opacity: (loading || selectedItems.length === 0) ? 0.5 : 1
+                opacity: selectedItems.length === 0 ? 0.5 : 1
               }}
             >
-              {loading ? 'Uploading...' : 'Complete Setup'}
+              Next: Add Notes
             </button>
           </div>
         </div>
+      ) : step === 3 ? (
+        <div>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ 
+              display: 'block', 
+              marginBottom: '0.5rem', 
+              color: '#374151',
+              fontSize: '1rem',
+              fontWeight: '500'
+            }}>
+              Additional Notes (Optional)
+            </label>
+            <textarea
+              name="notes"
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              placeholder="Add any additional information about your restaurant, special requirements, or notes for the approval team..."
+              rows={6}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem',
+                resize: 'vertical',
+                fontFamily: 'inherit'
+              }}
+            />
+            <p style={{
+              margin: '0.5rem 0 0 0',
+              fontSize: '0.75rem',
+              color: '#6b7280'
+            }}>
+              This information will help us better understand your restaurant and process your application more efficiently.
+            </p>
+          </div>
+
+          <div style={{
+            backgroundColor: '#f9fafb',
+            border: '1px solid #e5e7eb',
+            borderRadius: '0.5rem',
+            padding: '1rem',
+            marginBottom: '1.5rem'
+          }}>
+            <h4 style={{
+              margin: '0 0 0.75rem 0',
+              color: '#374151',
+              fontSize: '1rem',
+              fontWeight: '600'
+            }}>
+              Application Summary
+            </h4>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+              <p style={{ margin: '0.25rem 0' }}>
+                <strong>Business:</strong> {formData.business_name}
+              </p>
+              <p style={{ margin: '0.25rem 0' }}>
+                <strong>Type:</strong> {formData.business_type}
+              </p>
+              <p style={{ margin: '0.25rem 0' }}>
+                <strong>Contact:</strong> {formData.contact_name}
+              </p>
+              <p style={{ margin: '0.25rem 0' }}>
+                <strong>Menu Items:</strong> {selectedItems.length} items selected
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button
+              onClick={() => setStep(2)}
+              style={{
+                padding: '0.75rem',
+                backgroundColor: 'white',
+                color: '#1f2937',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem',
+                cursor: 'pointer'
+              }}
+            >
+              Back
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                backgroundColor: '#16a34a',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                opacity: loading ? 0.5 : 1,
+                fontWeight: '600'
+              }}
+            >
+              {loading ? 'Submitting Application...' : 'Submit Restaurant Application'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          {renderProgressBar()}
+        </div>
       )}
-      {renderProgressBar()}
     </div>
   );
 };

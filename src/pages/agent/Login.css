@@ -28,6 +28,14 @@
   max-width: 450px;
 }
 
+/* Wider container for signup form */
+.signup-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 650px;
+}
+
 /* Login Header */
 .login-header {
   text-align: center;
@@ -207,6 +215,23 @@
   100% { transform: rotate(360deg); }
 }
 
+/* Success Message */
+.success-message {
+  background: #d4edda;
+  color: #155724;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.success-icon {
+  font-size: 1rem;
+}
+
 /* Error Message */
 .error-message {
   background: #fed7d7;
@@ -272,6 +297,10 @@
     padding: 2rem;
   }
 
+  .signup-container {
+    max-width: 100%;
+  }
+
   .login-logo h1 {
     font-size: 2rem;
   }
@@ -286,6 +315,15 @@
     position: static;
     display: inline-block;
     margin-bottom: 1rem;
+  }
+
+  /* Single column on mobile */
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-group.full-width {
+    grid-column: span 1;
   }
 }
 
@@ -303,4 +341,15 @@
     gap: 1rem;
     align-items: flex-start;
   }
+}
+
+/* 2-Column Form Layout */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group.full-width {
+  grid-column: span 2;
 } 

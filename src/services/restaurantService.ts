@@ -19,6 +19,7 @@ interface Restaurant {
   approval_status: string;
   full_name: string;
   delika_onboarding_id: string;
+  Notes: string;
   branches: Branch[];
 }
 
