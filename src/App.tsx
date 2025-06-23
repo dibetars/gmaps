@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { MapProvider } from './context/MapContext';
 import { Map } from './components/Map';
 import { GeofenceForm } from './components/GeofenceForm';

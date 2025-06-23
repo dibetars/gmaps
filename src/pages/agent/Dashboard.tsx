@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { agentAuthService } from '../../services/auth';
 import { MapProvider } from '../../context/MapContext';
 import AgentLayout from '../../components/agent/AgentLayout';
-import Overview from '../../components/agent/Overview';
+import getOverviewContent from '../../components/agent/Overview';
 import Restaurants from '../../components/agent/Restaurants';
 import Earnings from '../../components/agent/Earnings';
 
@@ -19,7 +19,7 @@ const AgentDashboard: React.FC = () => {
   const renderContent = () => {
     switch (activeSection) {
       case 'overview':
-        const overviewContent = Overview();
+        const overviewContent = getOverviewContent();
         return (
           <AgentLayout
             row1={overviewContent.row1}

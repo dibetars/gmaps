@@ -21,7 +21,7 @@ interface EarningsData {
 }
 
 const Earnings: React.FC = () => {
-  const [stats, setStats] = useState<EarningsStats>({
+  const [stats] = useState<EarningsStats>({
     totalEarnings: 15250,
     monthlyEarnings: 3200,
     pendingPayouts: 850,

@@ -36,7 +36,7 @@ const mapContainerStyle = {
 };
 
 const Restaurants: React.FC = () => {
-  const [stats, setStats] = useState<RestaurantStats>({
+  const [stats] = useState<RestaurantStats>({
     totalActive: 45,
     pendingApproval: 12,
     totalRejected: 8,

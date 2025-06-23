@@ -222,7 +222,7 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       });
 
       // Upload inventory items
-      for (const [index, item] of selectedItems.entries()) {
+      for (const item of selectedItems) {
         setUploadProgress(prev => {
           const newInventory = { ...prev.inventory, [item.id]: 10 };
           updateOverallProgress(prev.restaurant, newInventory);
