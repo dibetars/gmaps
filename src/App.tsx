@@ -13,6 +13,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import Home from './pages/Home';
 import AdminLogin from './pages/AdminLogin';
+import AgentApprovals from './components/agent/AgentApprovals';
 
 function GeofenceSection() {
   return (
@@ -44,6 +45,8 @@ function App() {
         );
       case 'settings':
         return <Settings />;
+      case 'approvals':
+        return <AgentApprovals />;
       default:
         return null;
     }
@@ -95,6 +98,13 @@ function App() {
                       >
                         <span className="nav-icon">🏢</span>
                         Places
+                      </button>
+                      <button 
+                        className={`nav-item ${activeSection === 'approvals' ? 'active' : ''}`}
+                        onClick={() => setActiveSection('approvals')}
+                      >
+                        <span className="nav-icon">👥</span>
+                        Agent Approvals
                       </button>
                       <button 
                         className={`nav-item ${activeSection === 'settings' ? 'active' : ''}`}

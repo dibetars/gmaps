@@ -16,6 +16,7 @@
     "@types/jszip": "^3.4.0",
     "@types/node": "^22.15.14",
     "@types/react-router-dom": "^5.3.3",
+    "axios": "^1.10.0",
     "jszip": "^3.10.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
