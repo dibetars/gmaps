@@ -3,9 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { agentAuthService } from '../../services/auth';
 import { MapProvider } from '../../context/MapContext';
 import AgentLayout from '../../components/agent/AgentLayout';
-import getOverviewContent from '../../components/agent/Overview';
-import Restaurants from '../../components/agent/Restaurants';
-import Earnings from '../../components/agent/Earnings';
 
 const AgentDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -14,26 +11,6 @@ const AgentDashboard: React.FC = () => {
   const handleLogout = () => {
     agentAuthService.clearSession();
     navigate('/agent/login');
-  };
-
-  const renderContent = () => {
-    switch (activeSection) {
-      case 'overview':
-        const overviewContent = getOverviewContent();
-        return (
-          <AgentLayout
-            row1={overviewContent.row1}
-            row2={overviewContent.row2}
-            row3={overviewContent.row3}
-          />
-        );
-      case 'restaurants':
-        return <Restaurants />;
-      case 'earnings':
-        return <Earnings />;
-      default:
-        return <AgentLayout />;
-    }
   };
 
   return (
@@ -78,7 +55,7 @@ const AgentDashboard: React.FC = () => {
         </aside>
         <main className="main-content">
           <div className="content-section">
-            {renderContent()}
+            <AgentLayout />
           </div>
         </main>
       </div>

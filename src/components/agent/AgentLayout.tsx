@@ -7,12 +7,14 @@ import AgentApprovals from './AgentApprovals';
 
 const AgentLayout: React.FC = () => {
   return (
-    <Routes>
-      <Route path="/" element={<Overview />} />
-      <Route path="/restaurants" element={<Restaurants />} />
-      <Route path="/earnings" element={<Earnings />} />
-      <Route path="/approvals" element={<AgentApprovals />} />
-    </Routes>
+    <div className="agent-layout">
+      <Routes>
+        <Route path="/" element={<Overview />} />
+        <Route path="/restaurants" element={<Restaurants />} />
+        <Route path="/earnings" element={<Earnings />} />
+        <Route path="/approvals" element={<AgentApprovals />} />
+      </Routes>
+    </div>
   );
 };
 

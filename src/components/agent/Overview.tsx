@@ -4,24 +4,17 @@ import RestaurantGraph from './RestaurantGraph';
 import RecentActivity from './RecentActivity';
 import RestaurantMap from './RestaurantMap';
 
-interface OverviewContent {
-  row1: React.ReactElement;
-  row2: {
-    left: React.ReactElement;
-    right: React.ReactElement;
-  };
-  row3: React.ReactElement;
-}
-
-const getOverviewContent = (): OverviewContent => {
-  return {
-    row1: <WelcomeHeader />,
-    row2: {
-      left: <RestaurantGraph />,
-      right: <RecentActivity />
-    },
-    row3: <RestaurantMap />
-  };
+const Overview: React.FC = () => {
+  return (
+    <div>
+      <WelcomeHeader />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', margin: '1rem 0' }}>
+        <RestaurantGraph />
+        <RecentActivity />
+      </div>
+      <RestaurantMap />
+    </div>
+  );
 };
 
-export default getOverviewContent; 
+export default Overview; 
