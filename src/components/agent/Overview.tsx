@@ -6,9 +6,14 @@ import RestaurantMap from './RestaurantMap';
 
 const Overview: React.FC = () => {
   return (
-    <div>
+    <div style={{ padding: '24px' }}>
       <WelcomeHeader />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', margin: '1rem 0' }}>
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: '1fr 1fr', 
+        gap: '24px',
+        marginBottom: '24px'
+      }}>
         <RestaurantGraph />
         <RecentActivity />
       </div>

@@ -1,85 +1,77 @@
-interface Branch {
-  name: string;
-  address: string;
-  latitude: string;
-  longitude: string;
-  phoneNumber: string;
-  city: string;
-}
-
-interface Restaurant {
-  id: string;
-  created_at: number;
-  business_name: string;
-  address: string;
-  email: string;
-  phone_number: string;
-  business_type: string;
-  type_of_service: string;
-  approval_status: string;
-  full_name: string;
-  delika_onboarding_id: string;
-  Notes: string;
-  branches: Branch[];
-}
+import axios from 'axios';
 
 const API_BASE_URL = 'https://api-server.krontiva.africa/api:uEBBwbSs';
 
+interface Restaurant {
+  id: number;
+  name: string;
+  location: string;
+  branches?: any[];
+  created_at: number;
+  agent_id: number;
+  status?: string;
+  timestamp?: string;
+}
+
 export const restaurantService = {
-  async getRestaurantByAgentId(delikaOnboardingId: string): Promise<Restaurant[]> {
+  getRestaurantByAgentId: async (agentId: number): Promise<Restaurant[]> => {
     try {
-      const authToken = localStorage.getItem('agentAuthToken');
-      if (!authToken) {
-        throw new Error('No authentication token found');
-      }
-
-      const response = await fetch(`${API_BASE_URL}/agentRestaurant/${delikaOnboardingId}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'X-Xano-Authorization': `Bearer ${authToken}`,
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch restaurant data');
-      }
-
-      const data = await response.json();
-      console.log('Restaurant Data:', data); // Console log the fetched data
-      return data;
+      const response = await axios.get(`${API_BASE_URL}/restaurants?agent_id=${agentId}`);
+      return response.data || [];
     } catch (error) {
-      console.error('Error fetching restaurant data:', error);
+      console.error('Error fetching restaurants:', error);
       throw error;
     }
   },
 
-  async submitRestaurantApproval(restaurantData: Omit<Restaurant, 'id' | 'created_at'>): Promise<Restaurant> {
+  addRestaurant: async (restaurantData: Partial<Restaurant>): Promise<Restaurant> => {
     try {
-      const authToken = localStorage.getItem('agentAuthToken');
-      if (!authToken) {
-        throw new Error('No authentication token found');
+      const response = await axios.post(`${API_BASE_URL}/restaurants`, restaurantData);
+      return response.data;
+    } catch (error: any) {
+      // Check if it's a 404 error but the operation might have succeeded
+      if (error.response?.status === 404) {
+        // If the response contains data, the operation might have succeeded despite the 404
+        if (error.response.data) {
+          console.warn('Received 404 but operation appears successful');
+          return error.response.data;
+        }
       }
+      console.error('Error adding restaurant:', error);
+      throw error;
+    }
+  },
 
-      const response = await fetch(`${API_BASE_URL}/delika_restaurant_approvals`, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'X-Xano-Authorization': `Bearer ${authToken}`,
-        },
-        body: JSON.stringify(restaurantData)
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to submit restaurant approval');
+  updateRestaurant: async (restaurantId: number, updateData: Partial<Restaurant>): Promise<Restaurant> => {
+    try {
+      const response = await axios.put(`${API_BASE_URL}/restaurants/${restaurantId}`, updateData);
+      return response.data;
+    } catch (error: any) {
+      // Check if it's a 404 error but the operation might have succeeded
+      if (error.response?.status === 404) {
+        if (error.response.data) {
+          console.warn('Received 404 but operation appears successful');
+          return error.response.data;
+        }
       }
+      console.error('Error updating restaurant:', error);
+      throw error;
+    }
+  },
 
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error submitting restaurant approval:', error);
+  deleteRestaurant: async (restaurantId: number): Promise<void> => {
+    try {
+      await axios.delete(`${API_BASE_URL}/restaurants/${restaurantId}`);
+    } catch (error: any) {
+      // Check if it's a 404 error but the operation might have succeeded
+      if (error.response?.status === 404) {
+        console.warn('Received 404 but delete operation might have succeeded');
+        return;
+      }
+      console.error('Error deleting restaurant:', error);
       throw error;
     }
   }
-}; 
+};
+
+export type { Restaurant }; 

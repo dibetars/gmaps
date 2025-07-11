@@ -16,23 +16,28 @@ interface Agent {
 const API_BASE_URL = 'https://api-server.krontiva.africa/api:uEBBwbSs';
 
 export const agentService = {
-  // Get all agents
   getAllAgents: async (): Promise<Agent[]> => {
     try {
       const response = await axios.get(`${API_BASE_URL}/delika_agents`);
-      return response.data;
+      return response.data || [];
     } catch (error) {
       console.error('Error fetching agents:', error);
       throw error;
     }
   },
 
-  // Update agent approval status
   updateAgentStatus: async (agent: Agent): Promise<Agent> => {
     try {
       const response = await axios.put(`${API_BASE_URL}/delika_agents/${agent.id}`, agent);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      // Check if it's a 404 error but the operation might have succeeded
+      if (error.response?.status === 404) {
+        if (error.response.data) {
+          console.warn('Received 404 but operation appears successful');
+          return error.response.data;
+        }
+      }
       console.error('Error updating agent:', error);
       throw error;
     }

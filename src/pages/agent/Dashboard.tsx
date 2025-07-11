@@ -6,7 +6,6 @@ import AgentLayout from '../../components/agent/AgentLayout';
 
 const AgentDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState('overview');
 
   const handleLogout = () => {
     agentAuthService.clearSession();
@@ -22,8 +21,8 @@ const AgentDashboard: React.FC = () => {
           </header>
           <nav className="nav-menu">
             <button 
-              className={`nav-item ${activeSection === 'overview' ? 'active' : ''}`}
-              onClick={() => setActiveSection('overview')}
+              className="nav-item"
+              onClick={() => navigate('/agent')}
             >
               <span className="nav-icon">🗺️</span>
               Overview
