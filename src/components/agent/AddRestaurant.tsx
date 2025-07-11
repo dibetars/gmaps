@@ -287,74 +287,47 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     });
 
     try {
-      // Get the current user's ID
       const token = await agentAuthService.getStoredSession();
       if (!token) {
         throw new Error('No authentication token found');
       }
+
       const userData = await agentAuthService.getUserData(token);
 
-      // Start restaurant approval submission
-      setUploadProgress(prev => ({ ...prev, restaurant: 10 }));
-      await restaurantService.submitRestaurantApproval({
-        business_name: formData.business_name,
-        address: formData.branches[0].address,
+      // Create restaurant data
+      const restaurantData = {
+        name: formData.business_name,
+        location: formData.branches[0].address,
+        agent_id: userData.id, // userData.id is now a number
+        status: 'pending',
+        timestamp: new Date().toISOString(),
+        // Additional metadata
         email: formData.email,
-        phone_number: formData.momo_number,
+        contact_name: formData.contact_name,
+        momo_number: formData.momo_number,
         business_type: formData.business_type,
-        type_of_service: "Full Service",
-        approval_status: "pending",
-        full_name: formData.contact_name,
-        branches: formData.branches,
-        delika_onboarding_id: userData.id,
-        Notes: formData.notes
-      });
-      setUploadProgress(prev => {
-        const newProgress = { ...prev, restaurant: 100 };
-        updateOverallProgress(100, prev.inventory);
-        return newProgress;
-      });
+        notes: formData.notes,
+        branches: formData.branches.map(branch => ({
+          name: branch.name,
+          address: branch.address,
+          latitude: branch.latitude,
+          longitude: branch.longitude,
+          phone_number: branch.phoneNumber,
+          city: branch.city
+        }))
+      };
 
-      // Upload inventory items
-      for (const item of selectedItems) {
-        setUploadProgress(prev => {
-          const newInventory = { ...prev.inventory, [item.id]: 10 };
-          updateOverallProgress(prev.restaurant, newInventory);
-          return { ...prev, inventory: newInventory };
-        });
+      // Submit restaurant
+      await restaurantService.addRestaurant(restaurantData);
 
-        const response = await fetch(item.image.url);
-        const blob = await response.blob();
-        const file = new File([blob], item.image.name, { type: item.image.mime });
-
-        await inventoryService.addPreInventoryItem({
-          Name: item.Name,
-          Category: item.Category,
-          Subcategory: item.Subcategory,
-          Restaurant: formData.business_name,
-          photoUpload: file,
-          email: formData.email,
-          momoNumber: formData.momo_number,
-          contactName: formData.contact_name,
-          price: item.price.toString()
-        });
-
-        setUploadProgress(prev => {
-          const newInventory = { ...prev.inventory, [item.id]: 100 };
-          updateOverallProgress(prev.restaurant, newInventory);
-          return { ...prev, inventory: newInventory };
-        });
-      }
-
-      // Clear the current draft after successful submission
+      // Clear any saved draft
       if (currentDraftId) {
         deleteDraft(currentDraftId);
       }
 
       onClose();
-      window.location.reload();
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error('Error submitting restaurant:', error);
     } finally {
       setLoading(false);
     }

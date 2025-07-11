@@ -1,18 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { agentAuthService } from '../../services/auth';
-import { restaurantService } from '../../services/restaurantService';
+import { restaurantService, Restaurant as RestaurantType } from '../../services/restaurantService';
 
-interface Restaurant {
-  id: string;
-  business_name: string;
-  address: string;
-  created_at: number;
-  approval_status: string;
-  email: string;
-  phone_number: string;
-  business_type: string;
-  type_of_service: string;
-  full_name: string;
+interface Restaurant extends RestaurantType {
   branches: Array<{
     name: string;
     address: string;
@@ -48,10 +38,10 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ onRefresh, refreshTrigg
 
       // Sort restaurants by creation date (newest first)
       const sortedRestaurants = restaurantData.sort((a, b) => 
-        b.created_at - a.created_at
+        (b.created_at || 0) - (a.created_at || 0)
       );
       
-      setRestaurants(sortedRestaurants);
+      setRestaurants(sortedRestaurants as Restaurant[]);
       
       // If this was triggered by a refresh, notify the parent
       if (onRefresh) {

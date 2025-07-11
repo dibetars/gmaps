@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { agentAuthService } from '../../services/auth';
-import { restaurantService } from '../../services/restaurantService';
+import { restaurantService, Restaurant } from '../../services/restaurantService';
 
 interface GraphData {
   date: string;
@@ -38,8 +38,8 @@ const RestaurantGraph: React.FC = () => {
         });
 
         // Count restaurants created on each day
-        restaurants.forEach(restaurant => {
-          const createdDate = new Date(restaurant.created_at).toISOString().split('T')[0];
+        restaurants.forEach((restaurant: Restaurant) => {
+          const createdDate = new Date(restaurant.created_at || 0).toISOString().split('T')[0];
           const dayData = last7Days.find(day => day.date === createdDate);
           if (dayData) {
             dayData.count++;

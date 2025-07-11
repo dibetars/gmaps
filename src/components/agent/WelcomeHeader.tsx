@@ -1,14 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { agentAuthService } from '../../services/auth';
+import type { UserData as AuthUserData } from '../../services/auth';
 import { restaurantService } from '../../services/restaurantService';
 import AddRestaurant from './AddRestaurant';
 import RecentActivity from './RecentActivity';
-
-interface UserData {
-  id: string;
-  email: string;
-  created_at: number;
-}
 
 interface StatsData {
   totalRestaurants: number;
@@ -18,7 +13,7 @@ interface StatsData {
 }
 
 const WelcomeHeader: React.FC = () => {
-  const [userData, setUserData] = useState<UserData | null>(null);
+  const [userData, setUserData] = useState<AuthUserData | null>(null);
   const [stats, setStats] = useState<StatsData>({
     totalRestaurants: 0,
     totalEarnings: 0,

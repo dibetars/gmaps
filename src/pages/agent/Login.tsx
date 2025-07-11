@@ -33,6 +33,7 @@ const AgentLogin: React.FC = () => {
       const { authToken } = await agentAuthService.login(formData.username, formData.password);
       await agentAuthService.storeSession(authToken);
       const userData = await agentAuthService.getUserData(authToken);
+      // userData.id is now a number
       await restaurantService.getRestaurantByAgentId(userData.id);
       navigate('/agent/dashboard');
     } catch (err) {
