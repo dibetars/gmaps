@@ -3,20 +3,34 @@ import axios from 'axios';
 const API_BASE_URL = 'https://api-server.krontiva.africa/api:uEBBwbSs';
 
 interface Restaurant {
-  id: number;
-  name: string;
-  location: string;
-  branches?: any[];
-  created_at: number;
-  agent_id: number;
-  status?: string;
-  timestamp?: string;
+  id?: string;
+  business_name: string;
+  address: string;
+  email: string;
+  phone_number: string;
+  business_type: string;
+  type_of_service: string;
+  approval_status: string;
+  full_name: string;
+  delika_onboarding_id: string | null;
+  Notes: string;
+  branches: Array<{
+    name: string;
+    address: string;
+    latitude: string;
+    longitude: string;
+    phoneNumber: string;
+    city: string;
+  }>;
+  created_at?: number;
 }
 
 export const restaurantService = {
-  getRestaurantByAgentId: async (agentId: number): Promise<Restaurant[]> => {
+  getRestaurantByAgentId: async (agentId: number | string): Promise<Restaurant[]> => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/restaurants?agent_id=${agentId}`);
+      console.log('agentId', agentId);
+      // Ensure agentId is passed as a string
+      const response = await axios.get(`${API_BASE_URL}/agentRestaurant/${String(agentId)}`);
       return response.data || [];
     } catch (error) {
       console.error('Error fetching restaurants:', error);
@@ -26,7 +40,7 @@ export const restaurantService = {
 
   addRestaurant: async (restaurantData: Partial<Restaurant>): Promise<Restaurant> => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/restaurants`, restaurantData);
+      const response = await axios.post(`${API_BASE_URL}/delika_restaurant_approvals`, restaurantData);
       return response.data;
     } catch (error: any) {
       // Check if it's a 404 error but the operation might have succeeded
@@ -42,9 +56,9 @@ export const restaurantService = {
     }
   },
 
-  updateRestaurant: async (restaurantId: number, updateData: Partial<Restaurant>): Promise<Restaurant> => {
+  updateRestaurant: async (restaurantId: string, updateData: Partial<Restaurant>): Promise<Restaurant> => {
     try {
-      const response = await axios.put(`${API_BASE_URL}/restaurants/${restaurantId}`, updateData);
+      const response = await axios.put(`${API_BASE_URL}/delika_restaurant_approvals/${restaurantId}`, updateData);
       return response.data;
     } catch (error: any) {
       // Check if it's a 404 error but the operation might have succeeded
@@ -59,9 +73,9 @@ export const restaurantService = {
     }
   },
 
-  deleteRestaurant: async (restaurantId: number): Promise<void> => {
+  deleteRestaurant: async (restaurantId: string): Promise<void> => {
     try {
-      await axios.delete(`${API_BASE_URL}/restaurants/${restaurantId}`);
+      await axios.delete(`${API_BASE_URL}/delika_restaurant_approvals/${restaurantId}`);
     } catch (error: any) {
       // Check if it's a 404 error but the operation might have succeeded
       if (error.response?.status === 404) {

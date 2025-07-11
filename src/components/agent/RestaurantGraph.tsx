@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { agentAuthService } from '../../services/auth';
-import { restaurantService, Restaurant } from '../../services/restaurantService';
+import { restaurantService } from '../../services/restaurantService';
+import type { Restaurant } from '../../services/restaurantService';
 
 interface GraphData {
   date: string;

@@ -1,18 +1,14 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import Overview from './Overview';
-import Restaurants from './Restaurants';
-import Earnings from './Earnings';
-import AgentApprovals from './AgentApprovals';
 
-const AgentLayout: React.FC = () => {
+interface AgentLayoutProps {
+  children: React.ReactNode;
+}
+
+const AgentLayout: React.FC<AgentLayoutProps> = ({ children }) => {
   return (
-    <Routes>
-      <Route path="/" element={<Overview />} />
-      <Route path="/restaurants" element={<Restaurants />} />
-      <Route path="/earnings" element={<Earnings />} />
-      <Route path="/approvals" element={<AgentApprovals />} />
-    </Routes>
+    <div className="agent-layout">
+      {children}
+    </div>
   );
 };
 

@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { agentAuthService } from '../../services/auth';
-import { restaurantService, Restaurant as RestaurantType } from '../../services/restaurantService';
+import { restaurantService } from '../../services/restaurantService';
+import type { Restaurant } from '../../services/restaurantService';
 
-interface Restaurant extends RestaurantType {
+interface ExtendedRestaurant extends Restaurant {
+  business_name: string;
+  address: string;
+  approval_status: string;
+  email: string;
+  phone_number: string;
   branches: Array<{
     name: string;
     address: string;
@@ -21,7 +27,7 @@ interface RecentActivityProps {
 const ITEMS_PER_PAGE = 2;
 
 const RecentActivity: React.FC<RecentActivityProps> = ({ onRefresh, refreshTrigger }) => {
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [restaurants, setRestaurants] = useState<ExtendedRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -41,7 +47,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ onRefresh, refreshTrigg
         (b.created_at || 0) - (a.created_at || 0)
       );
       
-      setRestaurants(sortedRestaurants as Restaurant[]);
+      setRestaurants(sortedRestaurants as ExtendedRestaurant[]);
       
       // If this was triggered by a refresh, notify the parent
       if (onRefresh) {

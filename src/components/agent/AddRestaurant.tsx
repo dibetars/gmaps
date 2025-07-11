@@ -16,10 +16,13 @@ interface Branch {
 interface RestaurantForm {
   business_name: string;
   email: string;
-  contact_name: string;
-  momo_number: string;
+  full_name: string;
+  phone_number: string;
   business_type: string;
-  notes: string;
+  type_of_service: string;
+  approval_status: string;
+  Notes: string;
+  address: string;
   branches: Branch[];
 }
 
@@ -73,10 +76,13 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [formData, setFormData] = useState<RestaurantForm>({
     business_name: '',
     email: '',
-    contact_name: '',
-    momo_number: '',
+    full_name: '',
+    phone_number: '',
     business_type: '',
-    notes: '',
+    type_of_service: '',
+    approval_status: 'pending',
+    Notes: '',
+    address: '',
     branches: [{
       name: '',
       address: '',
@@ -263,63 +269,19 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setCurrentDraftId(draftId);
   };
 
-  const updateOverallProgress = (restaurantProgress: number, inventoryProgress: { [key: string]: number }) => {
-    const inventoryValues = Object.values(inventoryProgress);
-    const avgInventoryProgress = inventoryValues.length > 0 
-      ? inventoryValues.reduce((a, b) => a + b, 0) / inventoryValues.length 
-      : 0;
-    
-    // Restaurant submission is 30% of overall progress, inventory uploads are 70%
-    const overall = (restaurantProgress * 0.3) + (avgInventoryProgress * 0.7);
-    
-    setUploadProgress(prev => ({
-      ...prev,
-      overall: Math.round(overall)
-    }));
-  };
-
   const handleSubmit = async () => {
-    setLoading(true);
-    setUploadProgress({
-      restaurant: 0,
-      inventory: {},
-      overall: 0
-    });
-
     try {
-      const token = await agentAuthService.getStoredSession();
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      const userData = await agentAuthService.getUserData(token);
-
-      // Create restaurant data
+      setLoading(true);
+      const agentId = await agentAuthService.getCurrentAgentId();
+      
       const restaurantData = {
-        name: formData.business_name,
-        location: formData.branches[0].address,
-        agent_id: userData.id, // userData.id is now a number
-        status: 'pending',
-        timestamp: new Date().toISOString(),
-        // Additional metadata
-        email: formData.email,
-        contact_name: formData.contact_name,
-        momo_number: formData.momo_number,
-        business_type: formData.business_type,
-        notes: formData.notes,
-        branches: formData.branches.map(branch => ({
-          name: branch.name,
-          address: branch.address,
-          latitude: branch.latitude,
-          longitude: branch.longitude,
-          phone_number: branch.phoneNumber,
-          city: branch.city
-        }))
+        ...formData,
+        delika_onboarding_id: agentId,
+        location: [], // Required empty array as per API spec
       };
 
-      // Submit restaurant
-      await restaurantService.addRestaurant(restaurantData);
-
+      const response = await restaurantService.addRestaurant(restaurantData);
+      
       // Clear any saved draft
       if (currentDraftId) {
         deleteDraft(currentDraftId);
@@ -675,8 +637,8 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               </label>
               <input
                 type="text"
-                name="contact_name"
-                value={formData.contact_name}
+                name="full_name"
+                value={formData.full_name}
                 onChange={handleFormChange}
                 style={{
                   width: '100%',
@@ -693,8 +655,8 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               </label>
               <input
                 type="text"
-                name="momo_number"
-                value={formData.momo_number}
+                name="phone_number"
+                value={formData.phone_number}
                 onChange={handleFormChange}
                 style={{
                   width: '100%',
@@ -843,7 +805,7 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
           <button
             onClick={() => setStep(2)}
-            disabled={!formData.business_name || !formData.email || !formData.contact_name || !formData.momo_number || !formData.business_type}
+            disabled={!formData.business_name || !formData.email || !formData.full_name || !formData.phone_number || !formData.business_type}
             style={{
               marginTop: '1rem',
               padding: '0.75rem',
@@ -852,7 +814,7 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               border: 'none',
               borderRadius: '0.375rem',
               cursor: 'pointer',
-              opacity: (!formData.business_name || !formData.email || !formData.contact_name || !formData.momo_number || !formData.business_type) ? 0.5 : 1
+              opacity: (!formData.business_name || !formData.email || !formData.full_name || !formData.phone_number || !formData.business_type) ? 0.5 : 1
             }}
           >
             Next: Select Menu Items
@@ -1329,9 +1291,9 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               Additional Notes (Optional)
             </label>
             <textarea
-              name="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              name="Notes"
+              value={formData.Notes}
+              onChange={(e) => setFormData({ ...formData, Notes: e.target.value })}
               placeholder="Add any additional information about your restaurant, special requirements, or notes for the approval team..."
               rows={6}
               style={{
@@ -1376,7 +1338,7 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 <strong>Type:</strong> {formData.business_type}
               </p>
               <p style={{ margin: '0.25rem 0' }}>
-                <strong>Contact:</strong> {formData.contact_name}
+                <strong>Contact:</strong> {formData.full_name}
               </p>
               <p style={{ margin: '0.25rem 0' }}>
                 <strong>Menu Items:</strong> {selectedItems.length} items selected

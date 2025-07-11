@@ -8,7 +8,7 @@ import './Login.css';
 const AgentLogin: React.FC = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    username: '',
+    email: '',
     password: ''
   });
   const [error, setError] = useState('');
@@ -30,14 +30,13 @@ const AgentLogin: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const { authToken } = await agentAuthService.login(formData.username, formData.password);
-      await agentAuthService.storeSession(authToken);
+      const { authToken } = await agentAuthService.login(formData.email, formData.password);
       const userData = await agentAuthService.getUserData(authToken);
-      // userData.id is now a number
+      await agentAuthService.storeSession(authToken, userData);
       await restaurantService.getRestaurantByAgentId(userData.id);
       navigate('/agent/dashboard');
     } catch (err) {
-      setError('Invalid username or password');
+      setError('Invalid email or password');
     } finally {
       setIsLoading(false);
     }
@@ -70,14 +69,14 @@ const AgentLogin: React.FC = () => {
             )}
 
             <div className="form-group">
-              <label htmlFor="username">Username</label>
+              <label htmlFor="email">Email</label>
               <input
-                type="text"
-                id="username"
-                name="username"
-                value={formData.username}
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
                 onChange={handleInputChange}
-                placeholder="Enter your username"
+                placeholder="Enter your email"
                 required
                 className="form-input"
               />
