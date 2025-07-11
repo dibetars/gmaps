@@ -95,7 +95,7 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<UploadProgress>({
+  const [uploadProgress] = useState<UploadProgress>({
     restaurant: 0,
     inventory: {},
     overall: 0
@@ -281,6 +281,7 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       };
 
       const response = await restaurantService.addRestaurant(restaurantData);
+      console.log('response', response);
       
       // Clear any saved draft
       if (currentDraftId) {

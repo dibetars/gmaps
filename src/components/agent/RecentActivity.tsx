@@ -168,7 +168,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ onRefresh, refreshTrigg
                   color: '#9ca3af', 
                   margin: '0.5rem 0 0 0'
                 }}>
-                  Added on {new Date(restaurant.created_at).toLocaleDateString()}
+                  Added on {new Date(restaurant.created_at || Date.now()).toLocaleDateString()}
                 </p>
               </div>
             </div>
