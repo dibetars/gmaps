@@ -238,8 +238,8 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       const manualId = `manual_${Date.now()}`;
       
       // Create FormData for image upload
-      const formData = new FormData();
-      formData.append('photoUpload', manualItemImage);
+      const imageFormData = new FormData();
+      imageFormData.append('photoUpload', manualItemImage);
       
       // Submit pre-inventory item
       await inventoryService.addPreInventoryItem({
