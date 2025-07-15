@@ -52,6 +52,16 @@ interface InventoryItem {
 
 interface SelectedItem extends InventoryItem {
   price: number;
+  isCustom?: boolean;
+}
+
+interface ManualItem {
+  id: string;
+  Name: string;
+  Category: string;
+  Subcategory: string;
+  price: number;
+  image: ImageData;
 }
 
 interface UploadProgress {
@@ -110,6 +120,25 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [savedDrafts, setSavedDrafts] = useState<SavedDraft[]>([]);
   const [showDraftPanel, setShowDraftPanel] = useState<boolean>(false);
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  const [showManualItemForm, setShowManualItemForm] = useState(false);
+  const [manualItemData, setManualItemData] = useState<ManualItem>({
+    id: '',
+    Name: '',
+    Category: '',
+    Subcategory: '',
+    price: 0,
+    image: {
+      access: 'public',
+      path: '',
+      name: '',
+      type: 'image',
+      size: 0,
+      mime: '',
+      meta: { width: 0, height: 0 },
+      url: ''
+    }
+  });
+  const [manualItemImage, setManualItemImage] = useState<File | null>(null);
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '') as string,
@@ -191,6 +220,75 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setSelectedItemForPrice(null);
     setItemPrice('');
     setPriceError('');
+  };
+
+  const handleManualItemSubmit = async () => {
+    if (!manualItemData.Name || !manualItemData.Category || !manualItemData.Subcategory || manualItemData.price <= 0) {
+      setPriceError('Please fill in all fields and set a valid price');
+      return;
+    }
+
+    if (!manualItemImage) {
+      setPriceError('Please upload an image');
+      return;
+    }
+
+    try {
+      // Create a unique ID for the manual item
+      const manualId = `manual_${Date.now()}`;
+      
+      // Create FormData for image upload
+      const formData = new FormData();
+      formData.append('photoUpload', manualItemImage);
+      
+      // Submit pre-inventory item
+      await inventoryService.addPreInventoryItem({
+        Name: manualItemData.Name,
+        Category: manualItemData.Category,
+        Subcategory: manualItemData.Subcategory,
+        Restaurant: formData.business_name,
+        photoUpload: manualItemImage,
+        email: formData.email,
+        momoNumber: formData.phone_number,
+        contactName: formData.full_name,
+        price: manualItemData.price.toString()
+      });
+
+      // Add to selected items
+      const newItem: SelectedItem = {
+        ...manualItemData,
+        id: manualId,
+        isCustom: true,
+        image: {
+          ...manualItemData.image,
+          url: URL.createObjectURL(manualItemImage)
+        }
+      };
+
+      setSelectedItems([...selectedItems, newItem]);
+      setShowManualItemForm(false);
+      setManualItemData({
+        id: '',
+        Name: '',
+        Category: '',
+        Subcategory: '',
+        price: 0,
+        image: {
+          access: 'public',
+          path: '',
+          name: '',
+          type: 'image',
+          size: 0,
+          mime: '',
+          meta: { width: 0, height: 0 },
+          url: ''
+        }
+      });
+      setManualItemImage(null);
+    } catch (error) {
+      console.error('Error adding manual item:', error);
+      setPriceError('Failed to add item. Please try again.');
+    }
   };
 
   // Get unique subcategories from inventory items
@@ -390,6 +488,690 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
     return () => clearTimeout(timeoutId);
   }, [formData, selectedItems, step]);
+
+  const renderManualItemForm = () => {
+    if (!showManualItemForm) return null;
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1100
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '0.5rem',
+          padding: '2rem',
+          width: '90%',
+          maxWidth: '500px',
+          position: 'relative'
+        }}>
+          <button
+            onClick={() => setShowManualItemForm(false)}
+            style={{
+              position: 'absolute',
+              top: '0.75rem',
+              right: '0.75rem',
+              background: 'none',
+              border: 'none',
+              fontSize: '1.25rem',
+              color: '#6b7280',
+              cursor: 'pointer'
+            }}
+          >
+            ×
+          </button>
+
+          <h3 style={{
+            margin: '0 0 1.5rem 0',
+            fontSize: '1.25rem',
+            fontWeight: '600',
+            color: '#1f2937'
+          }}>
+            Add Custom Item
+          </h3>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '0.5rem',
+              color: '#374151',
+              fontSize: '0.875rem'
+            }}>
+              Item Name
+            </label>
+            <input
+              type="text"
+              value={manualItemData.Name}
+              onChange={(e) => setManualItemData({ ...manualItemData, Name: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '0.5rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem'
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '0.5rem',
+              color: '#374151',
+              fontSize: '0.875rem'
+            }}>
+              Category
+            </label>
+            <input
+              type="text"
+              value={manualItemData.Category}
+              onChange={(e) => setManualItemData({ ...manualItemData, Category: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '0.5rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem'
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '0.5rem',
+              color: '#374151',
+              fontSize: '0.875rem'
+            }}>
+              Subcategory
+            </label>
+            <input
+              type="text"
+              value={manualItemData.Subcategory}
+              onChange={(e) => setManualItemData({ ...manualItemData, Subcategory: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '0.5rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem'
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '0.5rem',
+              color: '#374151',
+              fontSize: '0.875rem'
+            }}>
+              Price (GH₵)
+            </label>
+            <input
+              type="number"
+              value={manualItemData.price || ''}
+              onChange={(e) => setManualItemData({ ...manualItemData, price: Number(e.target.value) })}
+              style={{
+                width: '100%',
+                padding: '0.5rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem'
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '0.5rem',
+              color: '#374151',
+              fontSize: '0.875rem'
+            }}>
+              Image
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setManualItemImage(file);
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '0.5rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem'
+              }}
+            />
+          </div>
+
+          {priceError && (
+            <p style={{
+              color: '#ef4444',
+              fontSize: '0.875rem',
+              marginBottom: '1rem'
+            }}>
+              {priceError}
+            </p>
+          )}
+
+          <button
+            onClick={handleManualItemSubmit}
+            style={{
+              width: '100%',
+              padding: '0.75rem',
+              backgroundColor: '#2563eb',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.375rem',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}
+          >
+            Add Item
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderStep2 = () => {
+    return (
+      <div>
+          {/* Search Bar */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ marginBottom: '1rem' }}>
+              <input
+                type="text"
+                placeholder="Search menu items..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '1rem',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            {/* Category Filters */}
+            <div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: '0.5rem'
+              }}>
+                <span style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginRight: '1rem'
+                }}>
+                  Categories:
+                </span>
+                {getUniqueSubcategories().length > 10 && (
+                  <button
+                    onClick={() => setShowAllCategories(!showAllCategories)}
+                    style={{
+                      padding: '0.25rem 0.5rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      backgroundColor: 'white',
+                      color: '#6b7280'
+                    }}
+                  >
+                    {showAllCategories ? 'Show Less' : `Show All (${getUniqueSubcategories().length})`}
+                  </button>
+                )}
+              </div>
+              
+              <div style={{
+                display: 'flex',
+                gap: '0.5rem',
+                overflowX: 'auto',
+                paddingBottom: '0.5rem',
+                scrollbarWidth: 'thin'
+              }}>
+                <button
+                  onClick={() => setSelectedCategory('all')}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    border: 'none',
+                    borderRadius: '1.5rem',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    backgroundColor: selectedCategory === 'all' ? '#2563eb' : '#f3f4f6',
+                    color: selectedCategory === 'all' ? 'white' : '#374151',
+                    transition: 'all 0.2s ease',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0
+                  }}
+                >
+                  All ({inventoryItems.length})
+                </button>
+                {getUniqueSubcategories()
+                  .slice(0, showAllCategories ? undefined : 10)
+                  .map(subcategory => {
+                    const count = inventoryItems.filter(item => item.Subcategory === subcategory).length;
+                    return (
+                      <button
+                        key={subcategory}
+                        onClick={() => setSelectedCategory(subcategory)}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          border: 'none',
+                          borderRadius: '1.5rem',
+                          fontSize: '0.875rem',
+                          cursor: 'pointer',
+                          backgroundColor: selectedCategory === subcategory ? '#2563eb' : '#f3f4f6',
+                          color: selectedCategory === subcategory ? 'white' : '#374151',
+                          transition: 'all 0.2s ease',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0
+                        }}
+                      >
+                        {subcategory} ({count})
+                      </button>
+                    );
+                  })}
+                {!showAllCategories && getUniqueSubcategories().length > 10 && (
+                  <button
+                    onClick={() => setShowAllCategories(true)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      border: '2px dashed #d1d5db',
+                      borderRadius: '1.5rem',
+                      fontSize: '0.875rem',
+                      cursor: 'pointer',
+                      backgroundColor: 'transparent',
+                      color: '#6b7280',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0
+                    }}
+                  >
+                    +{getUniqueSubcategories().length - 10} more
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Results count */}
+            <div style={{
+              marginTop: '1rem',
+              fontSize: '0.875rem',
+              color: '#6b7280'
+            }}>
+              Showing {getFilteredItems().length} of {inventoryItems.length} items
+            </div>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+            gap: '1rem',
+            marginBottom: '1.5rem'
+          }}>
+            {getFilteredItems().length === 0 ? (
+              <div style={{
+                gridColumn: '1 / -1',
+                textAlign: 'center',
+                padding: '3rem 1rem',
+                color: '#6b7280'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔍</div>
+                <h3 style={{ margin: '0 0 0.5rem 0', color: '#374151' }}>No items found</h3>
+                <p style={{ margin: '0' }}>
+                  {searchQuery ? 
+                    `No items match "${searchQuery}"` : 
+                    `No items in ${selectedCategory} category`
+                  }
+                </p>
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedCategory('all');
+                  }}
+                  style={{
+                    marginTop: '1rem',
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#2563eb',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Clear Filters
+                </button>
+              </div>
+            ) : (
+              getFilteredItems().map(item => (
+                <div
+                  key={item.id}
+                  onClick={() => handleItemSelect(item)}
+                  style={{
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.375rem',
+                    padding: '0.75rem',
+                    cursor: 'pointer',
+                    transition: 'transform 0.2s, box-shadow 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'none';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <img
+                    src={item.image.url}
+                    alt={item.Name}
+                    style={{
+                      width: '100%',
+                      height: '150px',
+                      objectFit: 'cover',
+                      borderRadius: '0.25rem',
+                      marginBottom: '0.5rem'
+                    }}
+                  />
+                  <h4 style={{ margin: '0 0 0.25rem 0', color: '#1f2937' }}>{item.Name}</h4>
+                  <p style={{ margin: '0', fontSize: '0.875rem', color: '#6b7280' }}>
+                    {item.Category.split(' > ')[1]} • {item.Subcategory}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Price Input Modal */}
+          {selectedItemForPrice && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1100
+            }}>
+              <div style={{
+                backgroundColor: 'white',
+                borderRadius: '0.5rem',
+                padding: '2rem',
+                width: '90%',
+                maxWidth: '400px',
+                position: 'relative'
+              }}>
+                <button
+                  onClick={() => setSelectedItemForPrice(null)}
+                  style={{
+                    position: 'absolute',
+                    top: '0.75rem',
+                    right: '0.75rem',
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '1.25rem',
+                    color: '#6b7280',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ×
+                </button>
+
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  marginBottom: '1.5rem'
+                }}>
+                  <img
+                    src={selectedItemForPrice.image.url}
+                    alt={selectedItemForPrice.Name}
+                    style={{
+                      width: '80px',
+                      height: '80px',
+                      objectFit: 'cover',
+                      borderRadius: '0.375rem'
+                    }}
+                  />
+                  <div>
+                    <h3 style={{
+                      margin: '0 0 0.25rem 0',
+                      fontSize: '1.25rem',
+                      fontWeight: '600',
+                      color: '#1f2937'
+                    }}>
+                      {selectedItemForPrice.Name}
+                    </h3>
+                    <p style={{
+                      margin: '0',
+                      fontSize: '0.875rem',
+                      color: '#6b7280'
+                    }}>
+                      {selectedItemForPrice.Category.split(' > ')[1]} • {selectedItemForPrice.Subcategory}
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label
+                    htmlFor="price"
+                    style={{
+                      display: 'block',
+                      marginBottom: '0.5rem',
+                      color: '#374151',
+                      fontSize: '0.875rem',
+                      fontWeight: '500'
+                    }}
+                  >
+                    Enter Price (GH₵)
+                  </label>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    <div style={{
+                      position: 'relative',
+                      flex: 1
+                    }}>
+                      <span style={{
+                        position: 'absolute',
+                        left: '0.75rem',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: '#6b7280'
+                      }}>
+                        GH₵
+                      </span>
+                      <input
+                        id="price"
+                        type="number"
+                        value={itemPrice}
+                        onChange={(e) => {
+                          setItemPrice(e.target.value);
+                          setPriceError('');
+                        }}
+                        placeholder="0.00"
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem 0.75rem 0.5rem 2.5rem',
+                          border: `1px solid ${priceError ? '#ef4444' : '#d1d5db'}`,
+                          borderRadius: '0.375rem',
+                          fontSize: '1rem'
+                        }}
+                      />
+                    </div>
+                  </div>
+                  {priceError && (
+                    <p style={{
+                      color: '#ef4444',
+                      fontSize: '0.875rem',
+                      marginTop: '0.5rem'
+                    }}>
+                      {priceError}
+                    </p>
+                  )}
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  gap: '0.75rem',
+                  marginTop: '1.5rem'
+                }}>
+                  <button
+                    onClick={() => setSelectedItemForPrice(null)}
+                    style={{
+                      padding: '0.625rem 1.25rem',
+                      backgroundColor: 'white',
+                      color: '#1f2937',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.875rem',
+                      fontWeight: '500',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handlePriceSubmit}
+                    style={{
+                      flex: 1,
+                      padding: '0.625rem 1.25rem',
+                      backgroundColor: '#2563eb',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.875rem',
+                      fontWeight: '500',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Add Item
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Add Custom Item button */}
+          <button
+            onClick={() => setShowManualItemForm(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              padding: '0.75rem',
+              backgroundColor: '#f3f4f6',
+              border: '1px dashed #d1d5db',
+              borderRadius: '0.375rem',
+              color: '#374151',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              cursor: 'pointer',
+              marginBottom: '1rem'
+            }}
+          >
+            + Add Custom Item
+          </button>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h3 style={{ color: '#1f2937', marginBottom: '1rem' }}>Selected Items:</h3>
+            {selectedItems.map(item => (
+              <div
+                key={item.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  marginBottom: '0.5rem'
+                }}
+              >
+                <img
+                  src={item.image.url}
+                  alt={item.Name}
+                  style={{
+                    width: '50px',
+                    height: '50px',
+                    objectFit: 'cover',
+                    borderRadius: '0.25rem'
+                  }}
+                />
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: '0', color: '#1f2937' }}>{item.Name}</p>
+                  <p style={{ margin: '0', fontSize: '0.875rem', color: '#6b7280' }}>
+                    GH₵ {item.price}
+                  </p>
+                </div>
+                {uploadProgress.inventory[item.id] && (
+                  <div style={{ width: '60px', textAlign: 'right', color: '#059669' }}>
+                    {uploadProgress.inventory[item.id]}%
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button
+              onClick={() => setStep(1)}
+              style={{
+                padding: '0.75rem',
+                backgroundColor: 'white',
+                color: '#1f2937',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem',
+                cursor: 'pointer'
+              }}
+            >
+              Back
+            </button>
+            <button
+              onClick={() => setStep(3)}
+              disabled={selectedItems.length === 0}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                backgroundColor: '#2563eb',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                opacity: selectedItems.length === 0 ? 0.5 : 1
+              }}
+            >
+              Next: Add Notes
+            </button>
+          </div>
+        </div>
+    );
+  };
 
   return (
     <div style={{
@@ -822,464 +1604,8 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </button>
         </div>
       ) : step === 2 ? (
-        <div>
-          {/* Search Bar */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ marginBottom: '1rem' }}>
-              <input
-                type="text"
-                placeholder="Search menu items..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '0.5rem',
-                  fontSize: '1rem',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            {/* Category Filters */}
-            <div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                marginBottom: '0.5rem'
-              }}>
-                <span style={{
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginRight: '1rem'
-                }}>
-                  Categories:
-                </span>
-                {getUniqueSubcategories().length > 10 && (
-                  <button
-                    onClick={() => setShowAllCategories(!showAllCategories)}
-                    style={{
-                      padding: '0.25rem 0.5rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.375rem',
-                      fontSize: '0.75rem',
-                      cursor: 'pointer',
-                      backgroundColor: 'white',
-                      color: '#6b7280'
-                    }}
-                  >
-                    {showAllCategories ? 'Show Less' : `Show All (${getUniqueSubcategories().length})`}
-                  </button>
-                )}
-              </div>
-              
-              <div style={{
-                display: 'flex',
-                gap: '0.5rem',
-                overflowX: 'auto',
-                paddingBottom: '0.5rem',
-                scrollbarWidth: 'thin'
-              }}>
-                <button
-                  onClick={() => setSelectedCategory('all')}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    border: 'none',
-                    borderRadius: '1.5rem',
-                    fontSize: '0.875rem',
-                    cursor: 'pointer',
-                    backgroundColor: selectedCategory === 'all' ? '#2563eb' : '#f3f4f6',
-                    color: selectedCategory === 'all' ? 'white' : '#374151',
-                    transition: 'all 0.2s ease',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0
-                  }}
-                >
-                  All ({inventoryItems.length})
-                </button>
-                {getUniqueSubcategories()
-                  .slice(0, showAllCategories ? undefined : 10)
-                  .map(subcategory => {
-                    const count = inventoryItems.filter(item => item.Subcategory === subcategory).length;
-                    return (
-                      <button
-                        key={subcategory}
-                        onClick={() => setSelectedCategory(subcategory)}
-                        style={{
-                          padding: '0.5rem 1rem',
-                          border: 'none',
-                          borderRadius: '1.5rem',
-                          fontSize: '0.875rem',
-                          cursor: 'pointer',
-                          backgroundColor: selectedCategory === subcategory ? '#2563eb' : '#f3f4f6',
-                          color: selectedCategory === subcategory ? 'white' : '#374151',
-                          transition: 'all 0.2s ease',
-                          whiteSpace: 'nowrap',
-                          flexShrink: 0
-                        }}
-                      >
-                        {subcategory} ({count})
-                      </button>
-                    );
-                  })}
-                {!showAllCategories && getUniqueSubcategories().length > 10 && (
-                  <button
-                    onClick={() => setShowAllCategories(true)}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      border: '2px dashed #d1d5db',
-                      borderRadius: '1.5rem',
-                      fontSize: '0.875rem',
-                      cursor: 'pointer',
-                      backgroundColor: 'transparent',
-                      color: '#6b7280',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0
-                    }}
-                  >
-                    +{getUniqueSubcategories().length - 10} more
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Results count */}
-            <div style={{
-              marginTop: '1rem',
-              fontSize: '0.875rem',
-              color: '#6b7280'
-            }}>
-              Showing {getFilteredItems().length} of {inventoryItems.length} items
-            </div>
-          </div>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-            gap: '1rem',
-            marginBottom: '1.5rem'
-          }}>
-            {getFilteredItems().length === 0 ? (
-              <div style={{
-                gridColumn: '1 / -1',
-                textAlign: 'center',
-                padding: '3rem 1rem',
-                color: '#6b7280'
-              }}>
-                <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔍</div>
-                <h3 style={{ margin: '0 0 0.5rem 0', color: '#374151' }}>No items found</h3>
-                <p style={{ margin: '0' }}>
-                  {searchQuery ? 
-                    `No items match "${searchQuery}"` : 
-                    `No items in ${selectedCategory} category`
-                  }
-                </p>
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedCategory('all');
-                  }}
-                  style={{
-                    marginTop: '1rem',
-                    padding: '0.5rem 1rem',
-                    backgroundColor: '#2563eb',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '0.375rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Clear Filters
-                </button>
-              </div>
-            ) : (
-              getFilteredItems().map(item => (
-                <div
-                  key={item.id}
-                  onClick={() => handleItemSelect(item)}
-                  style={{
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.375rem',
-                    padding: '0.75rem',
-                    cursor: 'pointer',
-                    transition: 'transform 0.2s, box-shadow 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'none';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  <img
-                    src={item.image.url}
-                    alt={item.Name}
-                    style={{
-                      width: '100%',
-                      height: '150px',
-                      objectFit: 'cover',
-                      borderRadius: '0.25rem',
-                      marginBottom: '0.5rem'
-                    }}
-                  />
-                  <h4 style={{ margin: '0 0 0.25rem 0', color: '#1f2937' }}>{item.Name}</h4>
-                  <p style={{ margin: '0', fontSize: '0.875rem', color: '#6b7280' }}>
-                    {item.Category.split(' > ')[1]} • {item.Subcategory}
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Price Input Modal */}
-          {selectedItemForPrice && (
-            <div style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 1100
-            }}>
-              <div style={{
-                backgroundColor: 'white',
-                borderRadius: '0.5rem',
-                padding: '2rem',
-                width: '90%',
-                maxWidth: '400px',
-                position: 'relative'
-              }}>
-                <button
-                  onClick={() => setSelectedItemForPrice(null)}
-                  style={{
-                    position: 'absolute',
-                    top: '0.75rem',
-                    right: '0.75rem',
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '1.25rem',
-                    color: '#6b7280',
-                    cursor: 'pointer'
-                  }}
-                >
-                  ×
-                </button>
-
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  marginBottom: '1.5rem'
-                }}>
-                  <img
-                    src={selectedItemForPrice.image.url}
-                    alt={selectedItemForPrice.Name}
-                    style={{
-                      width: '80px',
-                      height: '80px',
-                      objectFit: 'cover',
-                      borderRadius: '0.375rem'
-                    }}
-                  />
-                  <div>
-                    <h3 style={{
-                      margin: '0 0 0.25rem 0',
-                      fontSize: '1.25rem',
-                      fontWeight: '600',
-                      color: '#1f2937'
-                    }}>
-                      {selectedItemForPrice.Name}
-                    </h3>
-                    <p style={{
-                      margin: '0',
-                      fontSize: '0.875rem',
-                      color: '#6b7280'
-                    }}>
-                      {selectedItemForPrice.Category.split(' > ')[1]} • {selectedItemForPrice.Subcategory}
-                    </p>
-                  </div>
-                </div>
-
-                <div style={{ marginBottom: '1rem' }}>
-                  <label
-                    htmlFor="price"
-                    style={{
-                      display: 'block',
-                      marginBottom: '0.5rem',
-                      color: '#374151',
-                      fontSize: '0.875rem',
-                      fontWeight: '500'
-                    }}
-                  >
-                    Enter Price (GH₵)
-                  </label>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}>
-                    <div style={{
-                      position: 'relative',
-                      flex: 1
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        left: '0.75rem',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        color: '#6b7280'
-                      }}>
-                        GH₵
-                      </span>
-                      <input
-                        id="price"
-                        type="number"
-                        value={itemPrice}
-                        onChange={(e) => {
-                          setItemPrice(e.target.value);
-                          setPriceError('');
-                        }}
-                        placeholder="0.00"
-                        style={{
-                          width: '100%',
-                          padding: '0.5rem 0.75rem 0.5rem 2.5rem',
-                          border: `1px solid ${priceError ? '#ef4444' : '#d1d5db'}`,
-                          borderRadius: '0.375rem',
-                          fontSize: '1rem'
-                        }}
-                      />
-                    </div>
-                  </div>
-                  {priceError && (
-                    <p style={{
-                      color: '#ef4444',
-                      fontSize: '0.875rem',
-                      marginTop: '0.5rem'
-                    }}>
-                      {priceError}
-                    </p>
-                  )}
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  gap: '0.75rem',
-                  marginTop: '1.5rem'
-                }}>
-                  <button
-                    onClick={() => setSelectedItemForPrice(null)}
-                    style={{
-                      padding: '0.625rem 1.25rem',
-                      backgroundColor: 'white',
-                      color: '#1f2937',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.375rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '500',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handlePriceSubmit}
-                    style={{
-                      flex: 1,
-                      padding: '0.625rem 1.25rem',
-                      backgroundColor: '#2563eb',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '0.375rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '500',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Add Item
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h3 style={{ color: '#1f2937', marginBottom: '1rem' }}>Selected Items:</h3>
-            {selectedItems.map(item => (
-              <div
-                key={item.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  marginBottom: '0.5rem'
-                }}
-              >
-                <img
-                  src={item.image.url}
-                  alt={item.Name}
-                  style={{
-                    width: '50px',
-                    height: '50px',
-                    objectFit: 'cover',
-                    borderRadius: '0.25rem'
-                  }}
-                />
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: '0', color: '#1f2937' }}>{item.Name}</p>
-                  <p style={{ margin: '0', fontSize: '0.875rem', color: '#6b7280' }}>
-                    GH₵ {item.price}
-                  </p>
-                </div>
-                {uploadProgress.inventory[item.id] && (
-                  <div style={{ width: '60px', textAlign: 'right', color: '#059669' }}>
-                    {uploadProgress.inventory[item.id]}%
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <button
-              onClick={() => setStep(1)}
-              style={{
-                padding: '0.75rem',
-                backgroundColor: 'white',
-                color: '#1f2937',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem',
-                cursor: 'pointer'
-              }}
-            >
-              Back
-            </button>
-            <button
-              onClick={() => setStep(3)}
-              disabled={selectedItems.length === 0}
-              style={{
-                flex: 1,
-                padding: '0.75rem',
-                backgroundColor: '#2563eb',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.375rem',
-                cursor: 'pointer',
-                opacity: selectedItems.length === 0 ? 0.5 : 1
-              }}
-            >
-              Next: Add Notes
-            </button>
-          </div>
-        </div>
-      ) : step === 3 ? (
+        renderStep2()
+      ) : (
         <div>
           <div style={{ marginBottom: '1.5rem' }}>
             <label style={{ 
@@ -1380,11 +1706,9 @@ const AddRestaurant: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             </button>
           </div>
         </div>
-      ) : (
-        <div>
-      {renderProgressBar()}
-        </div>
       )}
+      {renderManualItemForm()}
+      {renderProgressBar()}
     </div>
   );
 };
