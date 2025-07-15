@@ -15,7 +15,7 @@ interface Restaurant {
   delika_onboarding_id: string | null;
   Notes: string;
   branches: Array<{
-    name: string;
+  name: string;
     address: string;
     latitude: string;
     longitude: string;
